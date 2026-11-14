@@ -1,0 +1,44 @@
+name: toriq-tools
+
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: toriq-tools-db
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - toriq_pgdata:/var/lib/postgresql/data
+    networks:
+      - toriq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: toriq-tools-app
+    restart: always
+    ports:
+      # Host port 3001 so it can run beside other sites on the same VPS (proxy → :3001)
+      - "3001:3000"
+    env_file:
+      - .env.production
+    volumes:
+      # Logo survives container rebuilds (everything else is on R2)
+      - /var/www/toriq-tools/uploads:/app/public/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - toriq-net
+
+networks:
+  toriq-net:
+    driver: bridge
+
+volumes:
+  toriq_pgdata:
