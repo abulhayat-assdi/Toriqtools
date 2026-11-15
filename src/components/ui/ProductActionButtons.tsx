@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parsePrice } from "@/lib/parse-price";
 import { pushEcommerce, toItem, trackContactClick } from "@/lib/analytics";
-import SizeChart from "./SizeChart";
 import { Minus, Plus } from "lucide-react";
 
 type ProductInfo = {
@@ -174,7 +173,6 @@ export function ProductActionButtons({
                 );
               })()}
             </span>
-            <SizeChart />
           </div>
           <div className="flex gap-2 flex-wrap">
             {sizes.map(({ size, available }) => (

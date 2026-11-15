@@ -1,16 +1,10 @@
-const FALLBACK_ITEMS = [
-  "Featured on the Ellen's Show",
-  "6 Million Customers",
-  "2,50,000+ 4.9 Star Ratings",
-  "Oprah's Favorite Things 2018 & 2019"
-];
-
 interface TickerProps {
   tickerItems?: string[];
 }
 
 export default function Ticker({ tickerItems }: TickerProps) {
-  const items = tickerItems && tickerItems.length > 0 ? tickerItems : FALLBACK_ITEMS;
+  const items = (tickerItems ?? []).filter(Boolean);
+  if (items.length === 0) return null;
   
   return (
     <div className="flex h-[52px] w-full items-center overflow-hidden bg-brand-green">

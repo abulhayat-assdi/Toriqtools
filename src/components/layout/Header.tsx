@@ -228,7 +228,7 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
                 alt="Toriq Tools"
                 width={4504}
                 height={2793}
-                className="h-[40px] w-auto object-contain"
+                className="h-[48px] w-auto object-contain rounded-md bg-white px-2 py-1"
               />
             </Link>
           </div>
@@ -241,7 +241,7 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
               alt="Toriq Tools"
               width={4504}
               height={2793}
-              className="h-[34px] w-auto object-contain"
+              className="h-[42px] w-auto object-contain rounded-md bg-white px-1.5 py-0.5"
             />
           </Link>
 

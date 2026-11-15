@@ -5,10 +5,14 @@ E-commerce storefront + CMS for **Toriq Tools** (toriqtools.com) — Next.js, Pr
 ## Local development
 
 ```bash
-cp .env.local .env            # or edit .env.local directly
-createdb toriq_tools          # or: docker exec <pg> createdb -U postgres toriq_tools
-npx prisma migrate deploy
-npm run seed                  # admin + site settings + categories + policy pages
+# Postgres for this project only (host port 5433)
+docker run -d --name toriq-tools-dev-db --restart unless-stopped \
+  -e POSTGRES_PASSWORD=<pw from .env.local> -e POSTGRES_DB=toriq_tools \
+  -p 127.0.0.1:5433:5432 -v toriq_tools_dev_pgdata:/var/lib/postgresql/data postgres:15-alpine
+
+cp .env.local .env            # Prisma CLI reads .env
+npx prisma db push            # same as production entrypoint
+npm run seed                  # creates the first super admin only
 npm run dev
 ```
 

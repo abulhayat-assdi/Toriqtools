@@ -53,7 +53,7 @@ export default function TrustBadges() {
             <div key={i} className="flex flex-col md:flex-row items-center md:items-center gap-0.5 md:gap-4 text-center md:text-left">
               <div className="text-[#eb1c24] shrink-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-7 md:[&>svg]:h-7">{b.icon}</div>
               <div>
-                <p className="text-[7.5px] md:text-[12px] font-bold uppercase tracking-tight md:tracking-widest text-[#c9a96e] leading-tight">{b.title}</p>
+                <p className="text-[7.5px] md:text-[12px] font-bold uppercase tracking-tight md:tracking-widest text-white leading-tight">{b.title}</p>
                 <p className="hidden md:block text-[11px] text-[#888] mt-0.5">{b.subtitle}</p>
               </div>
             </div>

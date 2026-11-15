@@ -72,7 +72,7 @@ export default function HeroSlider({ banners, heroText = {} }: HeroSliderProps) 
     return (
       <Link
         href={heroText.btn_link || "/collections/all"}
-        className="block relative w-full aspect-[16/9] md:aspect-auto md:h-[90vh] md:max-h-[800px] bg-[#eb1c24]"
+        className="block relative w-full aspect-[16/9] md:aspect-auto md:h-[90vh] md:max-h-[800px] bg-[#1a1a1a]"
       >
         <div className="relative z-10 flex h-full items-center px-6 md:px-20">
           <div className="max-w-[520px]">
@@ -104,7 +104,7 @@ export default function HeroSlider({ banners, heroText = {} }: HeroSliderProps) 
 
   return (
     <div
-      className="relative w-full aspect-[16/9] md:aspect-auto md:h-[90vh] md:max-h-[800px] overflow-hidden bg-[#eb1c24] select-none"
+      className="relative w-full aspect-[16/9] md:aspect-auto md:h-[90vh] md:max-h-[800px] overflow-hidden bg-[#1a1a1a] select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >

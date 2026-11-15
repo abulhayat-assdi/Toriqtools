@@ -125,8 +125,8 @@ export default async function CollectionPage({ params }: PageProps) {
   }));
 
   // Map normalised category name → authoritative slug from DB
-  // This ensures product.category ("Cutting Tools") correctly resolves to
-  // the same slug used in the URL ("cutting-tools"), even if the category
+  // This ensures product.category ("Some Category") correctly resolves to
+  // the same slug used in the URL ("some-category"), even if the category
   // was renamed or has irregular spacing.
   const nameToSlug: Record<string, string> = {};
   for (const c of categories) {

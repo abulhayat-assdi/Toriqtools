@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { ProductActionButtons } from "@/components/ui/ProductActionButtons";
 import { ProductFaq } from "@/components/ui/ProductFaq";
 import { ProductReviewSummary } from "@/components/ui/ProductReviewSummary";
-import SizeChartTable from "@/components/ui/SizeChartTable";
 import { prisma } from "@/lib/db";
 import { ProductImageGallery } from "@/components/ui/ProductImageGallery";
 import { ProductViewTracker } from "@/components/ui/ProductViewTracker";
@@ -325,7 +324,6 @@ export default async function SingleProductPage({
 
       {product?.steeping?.enabled && <Steeping data={product.steeping} />}
       {product?.video_url && <ProductVideo url={product.video_url} title={product.name} />}
-      <SizeChartTable />
       <ProductFaq faqs={product?.faqs} productId={product?.id || "demo-id"} />
       <RelatedProducts products={relatedProducts} category={manualIds.length > 0 ? undefined : product?.category} />
       <ProductReviewSummary reviews={reviews} productId={product?.id || "demo-id"} />
