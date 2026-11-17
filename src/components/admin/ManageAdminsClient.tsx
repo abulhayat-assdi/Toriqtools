@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, UserPlus, Trash2, Crown } from "lucide-react";
-import { setAdminRole } from "@/app/admin/(dashboard)/manage-admins/actions";
+import { ShieldCheck, UserPlus, Trash2, Crown, Eye, EyeOff } from "lucide-react";
+import { createAdmin, setAdminRole } from "@/app/admin/(dashboard)/manage-admins/actions";
 import { useConfirm } from "@/contexts/ConfirmContext";
 
 interface AdminUser {
@@ -20,10 +20,11 @@ interface ManageAdminsClientProps {
 export default function ManageAdminsClient({ admins: initialAdmins }: ManageAdminsClientProps) {
   const confirm = useConfirm();
   const [admins, setAdmins] = useState<AdminUser[]>(initialAdmins);
-  const [searchEmail, setSearchEmail] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [foundUser, setFoundUser] = useState<AdminUser | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<"admin" | "super_admin">("admin");
+  const [showPassword, setShowPassword] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -38,49 +39,40 @@ export default function ManageAdminsClient({ admins: initialAdmins }: ManageAdmi
     setTimeout(() => setErrorMsg(""), 4000);
   };
 
-  const handleSearch = async () => {
-    if (!searchEmail.trim()) return;
-    setSearching(true);
-    setFoundUser(null);
-    setNotFound(false);
+  const canCreate = newName.trim() && newEmail.trim() && newPassword.length >= 8;
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canCreate) return;
+    setActionLoading("create");
     setErrorMsg("");
 
-    const res = await fetch(`/api/admin/customers?email=${encodeURIComponent(searchEmail.trim().toLowerCase())}`);
-    const json = await res.json();
-    const data = json.data;
-
-    setSearching(false);
-
-    if (!res.ok || !data) {
-      setNotFound(true);
-      return;
-    }
-
-    if (data.role === "admin" || data.role === "super_admin") {
-      showError("এই ইউজার ইতিমধ্যে অ্যাডমিন।");
-      return;
-    }
-
-    setFoundUser(data);
-  };
-
-  const handleMakeAdmin = async () => {
-    if (!foundUser) return;
-    setActionLoading("make");
-
-    const result = await setAdminRole(foundUser.id, "admin");
+    const result = await createAdmin({
+      name: newName,
+      email: newEmail,
+      password: newPassword,
+      role: newRole,
+    });
 
     setActionLoading(null);
 
-    if (result.error) {
-      showError(result.error);
+    if (!result.success || !result.admin) {
+      showError(result.error || "অ্যাডমিন তৈরি করা যায়নি।");
       return;
     }
 
-    setAdmins((prev) => [...prev, { ...foundUser, role: "admin" }]);
-    setFoundUser(null);
-    setSearchEmail("");
-    showSuccess(`${foundUser.name || foundUser.email} কে সফলভাবে অ্যাডমিন করা হয়েছে।`);
+    const created = result.admin;
+    setAdmins((prev) => [...prev, created]);
+    setNewName("");
+    setNewEmail("");
+    setNewPassword("");
+    setNewRole("admin");
+    setShowPassword(false);
+    showSuccess(
+      result.upgraded
+        ? `${created.email} আগে কাস্টমার ছিলেন — এখন নতুন পাসওয়ার্ডসহ ${created.role === "super_admin" ? "Super Admin" : "Admin"} করা হয়েছে।`
+        : `${created.name} (${created.email}) কে ${created.role === "super_admin" ? "Super Admin" : "Admin"} হিসেবে তৈরি করা হয়েছে।`
+    );
   };
 
   const handleToggleSuperAdmin = async (adminId: string, currentRole: string, adminName: string) => {
@@ -154,59 +146,74 @@ export default function ManageAdminsClient({ admins: initialAdmins }: ManageAdmi
           <UserPlus size={20} className="text-[#eb1c24]" />
           নতুন অ্যাডমিন যোগ করুন
         </h2>
-        <p className="text-sm text-gray-400 mb-5">কাস্টমারের ইমেইল দিয়ে সার্চ করুন এবং তাকে অ্যাডমিন করুন।</p>
+        <p className="text-sm text-gray-400 mb-5">নাম, ইমেইল ও পাসওয়ার্ড দিন — এই তথ্য দিয়েই নতুন অ্যাডমিন লগইন করতে পারবেন।</p>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="email"
-            value={searchEmail}
-            onChange={(e) => {
-              setSearchEmail(e.target.value);
-              setFoundUser(null);
-              setNotFound(false);
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="customer@email.com"
-            className="flex-1 bg-[#0f111a] border border-white/20 text-white placeholder-gray-600 px-4 py-3 rounded-lg text-sm focus:border-[#eb1c24] focus:outline-none transition-colors"
-          />
-          <button
-            onClick={handleSearch}
-            disabled={searching || !searchEmail.trim()}
-            className="w-full sm:w-auto px-6 py-3 bg-[#eb1c24] hover:bg-[#c4141b] text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {searching ? "খুঁজছি..." : "সার্চ"}
-          </button>
-        </div>
-
-        {/* Not found */}
-        {notFound && (
-          <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-red-400 text-sm">এই ইমেইলে কোনো কাস্টমার পাওয়া যায়নি।</p>
-          </div>
-        )}
-
-        {/* Found user preview */}
-        {foundUser && (
-          <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-lg flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="h-10 w-10 shrink-0 bg-[#eb1c24] text-white rounded-full flex items-center justify-center font-bold text-[16px]">
-                {(foundUser.name || foundUser.email).charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-white truncate">{foundUser.name || "—"}</p>
-                <p className="text-xs text-gray-400 truncate">{foundUser.email}</p>
-              </div>
+        <form onSubmit={handleCreateAdmin} className="grid grid-cols-1 md:grid-cols-2 gap-4" autoComplete="off">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-gray-300">নাম</span>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Admin name"
+              className="w-full bg-[#0f111a] border border-white/20 text-white placeholder-gray-600 px-4 py-3 rounded-lg text-sm focus:border-[#eb1c24] focus:outline-none transition-colors"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-gray-300">ইমেইল</span>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="admin@email.com"
+              autoCapitalize="none"
+              autoComplete="off"
+              className="w-full bg-[#0f111a] border border-white/20 text-white placeholder-gray-600 px-4 py-3 rounded-lg text-sm focus:border-[#eb1c24] focus:outline-none transition-colors"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-gray-300">পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)</span>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="w-full bg-[#0f111a] border border-white/20 text-white placeholder-gray-600 px-4 py-3 rounded-lg text-sm focus:border-[#eb1c24] focus:outline-none transition-colors pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-            <button
-              onClick={handleMakeAdmin}
-              disabled={actionLoading === "make"}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#eb1c24] hover:bg-[#c4141b] text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-60"
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-gray-300">রোল</span>
+            <select
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value as "admin" | "super_admin")}
+              className="w-full bg-[#0f111a] border border-white/20 text-white placeholder-gray-600 px-4 py-3 rounded-lg text-sm focus:border-[#eb1c24] focus:outline-none transition-colors"
             >
-              <ShieldCheck size={16} />
-              {actionLoading === "make" ? "প্রসেস করছে..." : "অ্যাডমিন করুন"}
+              <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+          </label>
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={!canCreate || actionLoading === "create"}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#eb1c24] hover:bg-[#c4141b] text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <UserPlus size={16} />
+              {actionLoading === "create" ? "তৈরি করছে..." : "অ্যাডমিন তৈরি করুন"}
             </button>
           </div>
-        )}
+        </form>
       </div>
 
       {/* Current Admins List */}

@@ -10,7 +10,8 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.googleadservices.com",
+      // Dev server (webpack) evaluates modules with eval(); production never needs it.
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.googleadservices.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://images.unsplash.com https://*.r2.dev https://cdn.toriqtools.com https://toriqtools.com https://www.facebook.com https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.g.doubleclick.net",
       "font-src 'self' data: https://fonts.gstatic.com",
