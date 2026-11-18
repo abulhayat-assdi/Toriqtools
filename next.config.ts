@@ -11,13 +11,13 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       // Dev server (webpack) evaluates modules with eval(); production never needs it.
-      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.googleadservices.com`,
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://images.unsplash.com https://*.r2.dev https://cdn.toriqtools.com https://toriqtools.com https://www.facebook.com https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.g.doubleclick.net",
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.googleadservices.com https://tagmanager.google.com https://*.googletagmanager.com`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://tagmanager.google.com https://www.googletagmanager.com",
+      "img-src 'self' data: blob: https://images.unsplash.com https://*.r2.dev https://cdn.toriqtools.com https://toriqtools.com https://www.facebook.com https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.g.doubleclick.net https://ssl.gstatic.com https://www.gstatic.com https://*.google-analytics.com",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.google-analytics.com https://region1.google-analytics.com https://*.googletagmanager.com https://www.google.com https://*.g.doubleclick.net https://analytics.google.com https://stats.g.doubleclick.net https://www.facebook.com https://connect.facebook.net",
+      "connect-src 'self' https://*.google-analytics.com https://region1.google-analytics.com https://*.googletagmanager.com https://www.google.com https://*.g.doubleclick.net https://analytics.google.com https://stats.g.doubleclick.net https://www.facebook.com https://connect.facebook.net https://tagassistant.google.com https://www.googleadservices.com",
       "media-src 'self' https://*.r2.dev https://cdn.toriqtools.com",
-      "frame-src https://www.youtube.com https://player.vimeo.com",
+      "frame-src https://www.youtube.com https://player.vimeo.com https://www.googletagmanager.com https://tagassistant.google.com",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
