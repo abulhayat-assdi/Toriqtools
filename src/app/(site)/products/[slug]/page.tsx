@@ -235,7 +235,7 @@ export default async function SingleProductPage({
             </div>
 
             {/* Details Section */}
-            <div className="flex flex-col md:col-start-2 md:row-start-1 md:row-span-2">
+            <div className="flex flex-col md:col-start-2 md:row-start-1">
               <h1 className="font-heading text-[17px] md:text-[32px] font-bold leading-tight text-[#1a1a1a]">
                 {product?.name}
               </h1>
@@ -291,7 +291,7 @@ export default async function SingleProductPage({
 
               {/* Product Details — below action buttons */}
               {(product?.detail || product?.description) && (
-                <div className="mt-3 border-t border-[#f0f0f0] pt-4 md:col-start-1 md:row-start-2 md:mt-0 md:pt-0 md:rounded-lg md:border md:border-[#e8e8e8] md:overflow-hidden">
+                <div className="mt-3 border-t border-[#f0f0f0] pt-4 md:col-span-2 md:col-start-1 md:row-start-2 md:mt-0 md:pt-0 md:rounded-lg md:border md:border-[#e8e8e8] md:overflow-hidden">
                   <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1a1a1a] mb-3 md:mb-0 md:bg-[#f3f3f3] md:px-5 md:py-3 md:border-b md:border-[#e8e8e8]">
                     Product Details
                   </h2>
