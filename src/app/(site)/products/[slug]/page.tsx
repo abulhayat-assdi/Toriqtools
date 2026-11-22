@@ -229,11 +229,13 @@ export default async function SingleProductPage({
             <span className="text-[#1a1a1a]" aria-current="page">{product?.name}</span>
           </nav>
 
-          <div className="grid items-start gap-2 md:gap-12 md:grid-cols-[1fr_1fr]">
-            <ProductImageGallery images={images} productName={product?.name || ""} />
+          <div className="grid items-start gap-2 md:gap-x-12 md:gap-y-6 md:grid-cols-[1fr_1fr] md:grid-rows-[auto_1fr]">
+            <div className="md:col-start-1 md:row-start-1">
+              <ProductImageGallery images={images} productName={product?.name || ""} />
+            </div>
 
             {/* Details Section */}
-            <div className="flex flex-col">
+            <div className="flex flex-col md:col-start-2 md:row-start-1 md:row-span-2">
               <h1 className="font-heading text-[17px] md:text-[32px] font-bold leading-tight text-[#1a1a1a]">
                 {product?.name}
               </h1>
@@ -285,19 +287,20 @@ export default async function SingleProductPage({
                 </svg>
                 ২-৩ কার্যদিবসের মধ্যে ডেলিভারি
               </div>
+            </div>
 
               {/* Product Details — below action buttons */}
               {(product?.detail || product?.description) && (
-                <div className="mt-5 border-t border-[#f0f0f0] pt-4">
-                  <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1a1a1a] mb-3">
+                <div className="mt-3 border-t border-[#f0f0f0] pt-4 md:col-start-1 md:row-start-2 md:mt-0 md:pt-0 md:rounded-lg md:border md:border-[#e8e8e8] md:overflow-hidden">
+                  <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1a1a1a] mb-3 md:mb-0 md:bg-[#f3f3f3] md:px-5 md:py-3 md:border-b md:border-[#e8e8e8]">
                     Product Details
                   </h2>
                   {product?.detail && (
-                    <p className="text-[14px] text-[#555] leading-relaxed">{product.detail}</p>
+                    <p className="text-[14px] text-[#555] leading-relaxed md:px-5 md:pt-4">{product.detail}</p>
                   )}
                   {product?.description && (
                     <div
-                      className="product-description mt-3 text-[14px] md:text-[15px] leading-[1.7] text-[#444]"
+                      className="product-description mt-3 text-[14px] md:text-[15px] leading-[1.7] text-[#444] md:px-5 md:pb-5"
                       dangerouslySetInnerHTML={{
                         __html: (() => {
                           try {
@@ -317,7 +320,6 @@ export default async function SingleProductPage({
                   )}
                 </div>
               )}
-            </div>
           </div>
         </div>
       </section>

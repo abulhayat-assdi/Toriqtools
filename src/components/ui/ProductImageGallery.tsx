@@ -34,7 +34,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
 
   if (!images || images.length === 0) {
     return (
-      <div className="aspect-square md:aspect-[3/4] w-full bg-[#f5f5f5] flex items-center justify-center text-[#ccc] text-[14px]">
+      <div className="aspect-square w-full bg-white flex items-center justify-center text-[#ccc] text-[14px]">
         No image available
       </div>
     );
@@ -61,7 +61,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                 alt=""
                 fill
                 sizes="78px"
-                className="object-cover"
+                className="object-contain bg-white"
                 unoptimized={img?.startsWith("/uploads/")}
               />
             </button>
@@ -70,7 +70,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
       )}
 
       {/* Main Image */}
-      <div className="relative flex-1 aspect-square md:aspect-[3/4] bg-[#f5f5f5] overflow-hidden group">
+      <div className="relative flex-1 min-w-0 aspect-square bg-white border border-[#eee] overflow-hidden group">
         {/* Wishlist button */}
         <button
           type="button"
@@ -96,7 +96,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                 alt={`${productName} - ${i + 1}`}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
+                className="object-contain"
                 priority={i === 0}
                 unoptimized={img?.startsWith("/uploads/")}
               />
