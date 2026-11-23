@@ -10,6 +10,7 @@ import { ProductImageGallery } from "@/components/ui/ProductImageGallery";
 import { ProductViewTracker } from "@/components/ui/ProductViewTracker";
 import RelatedProducts from "@/components/ui/RelatedProducts";
 import { parsePrice } from "@/lib/parse-price";
+import { normalizeSizes } from "@/lib/size-price";
 import { SITE_URL as BASE } from "@/lib/constants";
 import sanitizeHtml from "sanitize-html";
 
@@ -240,27 +241,6 @@ export default async function SingleProductPage({
                 {product?.name}
               </h1>
 
-              {/* Price */}
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="text-[18px] md:text-[32px] font-bold text-[#eb1c24]">
-                  {product?.price?.includes("Tk") || product?.price?.includes("৳")
-                    ? product?.price.replace("Tk", "৳")
-                    : `৳${product?.price}`}
-                </span>
-                {product?.original_price && (
-                  <span className="text-[16px] text-[#aaa] line-through">
-                    {product?.original_price?.includes("Tk") || product?.original_price?.includes("৳")
-                      ? product?.original_price.replace("Tk", "৳")
-                      : `৳${product?.original_price}`}
-                  </span>
-                )}
-                {product?.discount && (
-                  <span className="bg-red-500 text-white px-2 py-0.5 text-[12px] font-bold rounded">
-                    {product.discount}
-                  </span>
-                )}
-              </div>
-
               {/* Action Buttons (size/color/quantity/buy) — appear before description */}
               <ProductActionButtons
                 product={{
@@ -276,7 +256,7 @@ export default async function SingleProductPage({
                 whatsappNumber={siteSettings.whatsapp_number ?? undefined}
                 phoneNumber={siteSettings.phone_number ?? undefined}
                 colors={Array.isArray(product?.colors) ? (product.colors as string[]) : []}
-                sizes={Array.isArray(product?.sizes) ? (product.sizes as any[]).map((s: any) => typeof s === 'string' ? { size: s, available: true } : s) : []}
+                sizes={normalizeSizes(product?.sizes)}
                 colorImageOffset={colorImageOffset}
               />
 

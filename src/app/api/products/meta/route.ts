@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { normalizeSizes } from '@/lib/size-price';
 
 // Public endpoint — returns colors & sizes for given product IDs.
 // Used by checkout to enrich cart items that are missing this metadata.
@@ -13,7 +14,9 @@ export async function POST(req: NextRequest) {
       where: { id: { in: ids.slice(0, 50) }, is_available: true },
       select: { id: true, colors: true, sizes: true },
     });
-    return NextResponse.json({ data: products });
+    return NextResponse.json({
+      data: products.map((p) => ({ ...p, sizes: normalizeSizes(p.sizes) })),
+    });
   } catch {
     return NextResponse.json({ data: [] }, { status: 500 });
   }

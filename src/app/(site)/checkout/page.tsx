@@ -8,6 +8,7 @@ import { Trash2, ShoppingCart, Truck, ArrowLeft, Loader2, CheckCircle2, MessageC
 import SiteConfirmModal from "@/components/ui/SiteConfirmModal";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { cartLineToItem, normalizeCategory, pushEcommerce, trackContactClick } from "@/lib/analytics";
+import { applySizePrice, type SizeOption } from "@/lib/size-price";
 
 const SHIPPING_OPTIONS = [
   { value: "inside", label: "ঢাকার ভিতরে", charge: 70 },
@@ -218,7 +219,7 @@ function CheckoutContent() {
               if (metaMap[item.id] && !item.availableColors && !item.availableSizes) {
                 const meta = metaMap[item.id];
                 const colors: string[] = Array.isArray(meta.colors) ? meta.colors : [];
-                const sizes: { size: string; available: boolean }[] = Array.isArray(meta.sizes) ? meta.sizes : [];
+                const sizes: SizeOption[] = Array.isArray(meta.sizes) ? meta.sizes : [];
                 return {
                   ...item,
                   availableColors: colors.length > 0 ? colors : undefined,
@@ -234,8 +235,10 @@ function CheckoutContent() {
       }
       // ─────────────────────────────────────────────────────────────────────────
 
-      setCartItems(items);
       const selections = initSelections(items);
+      // Price each line by its selected size (a size may carry its own price)
+      items = items.map((item: any) => applySizePrice(item, selections[item.id]?.size));
+      setCartItems(items);
       setLoading(false);
 
       // GA4/GTM begin_checkout — once per mount, and again only if buyNowId changes
@@ -263,6 +266,18 @@ function CheckoutContent() {
     return initial;
   };
 
+
+  // Switching size re-prices the line instantly when that size has its own price
+  const selectItemSize = (id: string, size: string) => {
+    const updated = cartItems.map(item =>
+      item.id === id ? applySizePrice({ ...item, selectedSize: size }, size) : item
+    );
+    setCartItems(updated);
+    if (!buyNowId) {
+      localStorage.setItem("cart", JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent("cart:add"));
+    }
+  };
 
   const updateQuantity = (id: string, delta: number) => {
     const updated = cartItems.map(item => {
@@ -716,7 +731,7 @@ function CheckoutContent() {
                                   key={size}
                                   type="button"
                                   disabled={!available}
-                                  onClick={() => { setItemSelections(prev => ({ ...prev, [item.id]: { ...prev[item.id], size } })); setSelectionErrors(prev => ({ ...prev, [item.id]: { ...prev[item.id], size: false } })); }}
+                                  onClick={() => { setItemSelections(prev => ({ ...prev, [item.id]: { ...prev[item.id], size } })); setSelectionErrors(prev => ({ ...prev, [item.id]: { ...prev[item.id], size: false } })); selectItemSize(item.id, size); }}
                                   className={`min-w-[44px] px-3 py-1.5 text-[13px] font-semibold border transition-all ${sel.size === size ? "bg-[#eb1c24] text-white border-[#eb1c24]" : "bg-white text-[#1a1a1a] border-[#ddd] hover:border-[#eb1c24]"} ${!available ? "opacity-40 line-through cursor-not-allowed" : ""}`}
                                 >
                                   {size}
