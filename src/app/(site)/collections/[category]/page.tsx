@@ -33,6 +33,7 @@ const fetchCollectionData = unstable_cache(
         category: true,
         subcategory: true,
         is_available: true,
+        badges: true,
       },
     }),
   ]);
@@ -108,7 +109,7 @@ export default async function CollectionPage({ params }: PageProps) {
   let productsData: {
     id: string; slug: string; name: string; detail: string | null;
     price: string; original_price: string | null; discount: string | null;
-    media_urls: unknown; category: string; subcategory: string | null; is_available: boolean;
+    media_urls: unknown; category: string; subcategory: string | null; is_available: boolean; badges: unknown;
   }[] = [];
 
   try {
@@ -164,6 +165,7 @@ export default async function CollectionPage({ params }: PageProps) {
       category: categorySlug,
       subcategory: subcategorySlug,
       unavailable: !p.is_available,
+      badges: p.badges,
     };
   });
 

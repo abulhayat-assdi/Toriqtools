@@ -35,6 +35,7 @@ export default function BrandStory({
       reviews: p._count?.reviews ? `${p._count.reviews} reviews` : undefined,
       imageUrl: p.media_urls?.[0] || 'https://images.unsplash.com/photo-1512909006721-3d6018887383?q=80&w=900&auto=format&fit=crop',
       unavailable: !p.is_available,
+      badges: p.badges,
     }));
   });
   return (

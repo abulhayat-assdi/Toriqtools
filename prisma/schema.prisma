@@ -42,6 +42,8 @@ model Product {
   is_available   Boolean         @default(true)
   is_featured    Boolean         @default(false)
   is_gift        Boolean         @default(false)
+  // Highlight badges ticked in admin, e.g. ["hot","new"] (see src/lib/product-badges.ts)
+  badges         Json            @default("[]")
   faqs           Json            @default("[]")
   steeping       Json?
   colors         Json            @default("[]")

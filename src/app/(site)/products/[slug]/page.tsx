@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { ProductImageGallery } from "@/components/ui/ProductImageGallery";
 import { ProductViewTracker } from "@/components/ui/ProductViewTracker";
 import RelatedProducts from "@/components/ui/RelatedProducts";
+import { resolveBadges, discountText } from "@/lib/product-badges";
 import { parsePrice } from "@/lib/parse-price";
 import { normalizeSizes } from "@/lib/size-price";
 import { SITE_URL as BASE } from "@/lib/constants";
@@ -237,6 +238,25 @@ export default async function SingleProductPage({
 
             {/* Details Section */}
             <div className="flex flex-col md:col-start-2 md:row-start-1">
+              {(() => {
+                const highlight = resolveBadges(product?.badges);
+                const off = discountText(product?.price, product?.original_price, product?.discount);
+                if (!highlight.length && !off) return null;
+                return (
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    {highlight.map((b) => (
+                      <span key={b.key} style={{ background: b.bg }} className="rounded-full px-2.5 py-[5px] text-[10px] md:text-[11px] font-bold uppercase leading-none tracking-wide text-white">
+                        {b.label}
+                      </span>
+                    ))}
+                    {off && (
+                      <span className="rounded-full bg-[#eb1c24] px-2.5 py-[5px] text-[10px] md:text-[11px] font-extrabold leading-none text-white">
+                        {off}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
               <h1 className="font-heading text-[17px] md:text-[32px] font-bold leading-tight text-[#1a1a1a]">
                 {product?.name}
               </h1>

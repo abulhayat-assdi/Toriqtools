@@ -3,6 +3,10 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { verifyAdminRequest } from '@/lib/admin-auth';
 import { r2Delete } from '@/lib/r2';
+import { isBadgeKey } from '@/lib/product-badges';
+
+const cleanBadges = (v: unknown) =>
+  Array.isArray(v) ? [...new Set(v.filter((k): k is string => typeof k === 'string' && isBadgeKey(k)))] : [];
 
 const revalidateSite = () => {
   // Invalidate unstable_cache entries that use these tags
@@ -33,14 +37,14 @@ export async function POST(req: NextRequest) {
       slug, name, detail, description, price, original_price, discount,
       per_cup_price, packaging, media_urls, category, subcategory, video_url, is_available,
       is_featured, is_gift, faqs, steeping, colors, sizes, display_order,
-      related_product_ids,
+      related_product_ids, badges,
     } = body;
     const product = await prisma.product.create({
       data: {
         slug, name, detail, description, price, original_price, discount,
         per_cup_price, packaging, media_urls, category, subcategory, video_url, is_available,
         is_featured, is_gift, faqs, steeping, colors, sizes, display_order,
-        related_product_ids,
+        related_product_ids, badges: cleanBadges(badges),
       },
     });
     revalidateSite();
@@ -56,6 +60,7 @@ export async function PUT(req: NextRequest) {
   }
   try {
     const { id, ...data } = await req.json();
+    if (data.badges !== undefined) data.badges = cleanBadges(data.badges);
     const old = await prisma.product.findUnique({ where: { id }, select: { media_urls: true } });
     const product = await prisma.product.update({ where: { id }, data });
     revalidateSite();

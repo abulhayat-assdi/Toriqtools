@@ -7,6 +7,7 @@ import RichTextEditor from '@/components/admin/RichTextEditor';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import SizePriceEditor from '@/components/admin/SizePriceEditor';
 import { normalizeSizes, type SizeOption } from '@/lib/size-price';
+import { PRODUCT_BADGES, resolveBadges, discountText, type BadgeKey } from '@/lib/product-badges';
 
 type FAQ = { q: string; a: string };
 type SizeItem = SizeOption;
@@ -17,6 +18,7 @@ type Product = {
   category: string; subcategory: string; is_available: boolean; is_featured: boolean; faqs: FAQ[];
   colors: string[]; sizes: SizeItem[]; display_order: number;
   related_product_ids: string[];
+  badges: BadgeKey[];
 };
 
 // Drop blank rows, duplicate sizes and empty prices before saving
@@ -35,7 +37,7 @@ const cleanSizes = (sizes: SizeItem[]): SizeItem[] => {
 
 type Cat = { id: string; name: string; parent_id: string | null };
 
-const empty: Omit<Product, 'id' | 'slug'> = { name: '', detail: '', description: '', price: '', originalPrice: '', discount: '', media_urls: [], video_url: '', category: '', subcategory: '', is_available: true, is_featured: false, faqs: [], colors: [], sizes: [], display_order: 1, related_product_ids: [] };
+const empty: Omit<Product, 'id' | 'slug'> = { name: '', detail: '', description: '', price: '', originalPrice: '', discount: '', media_urls: [], video_url: '', category: '', subcategory: '', is_available: true, is_featured: false, faqs: [], colors: [], sizes: [], display_order: 1, related_product_ids: [], badges: [] };
 
 export default function ProductsPage() {
   const confirm = useConfirm();
@@ -75,13 +77,13 @@ export default function ProductsPage() {
     setLoading(true);
     const res = await fetch('/api/admin/products');
     const data = await res.json();
-    if (data.data) setItems(data.data as Product[]);
+    if (data.data) setItems(data.data.map((p: any) => ({ ...p, originalPrice: p.original_price || '' })) as Product[]);
     setLoading(false);
   };
 
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, detail: p.detail || '', description: p.description || '', price: p.price, originalPrice: p.originalPrice || '', discount: p.discount || '', media_urls: p.media_urls || [], video_url: (p as any).video_url || '', category: p.category || cats[0] || '', subcategory: p.subcategory || '', is_available: p.is_available, is_featured: p.is_featured, faqs: p.faqs || [], colors: (p as any).colors || [], sizes: normalizeSizes((p as any).sizes), display_order: p.display_order ?? 1, related_product_ids: Array.isArray(p.related_product_ids) ? p.related_product_ids : [] });
+    setForm({ name: p.name, detail: p.detail || '', description: p.description || '', price: p.price, originalPrice: p.originalPrice || '', discount: p.discount || '', media_urls: p.media_urls || [], video_url: (p as any).video_url || '', category: p.category || cats[0] || '', subcategory: p.subcategory || '', is_available: p.is_available, is_featured: p.is_featured, faqs: p.faqs || [], colors: (p as any).colors || [], sizes: normalizeSizes((p as any).sizes), display_order: p.display_order ?? 1, related_product_ids: Array.isArray(p.related_product_ids) ? p.related_product_ids : [], badges: resolveBadges(p.badges).map(b => b.key) });
     setOpen(true);
   };
   const openNew = () => { setEditing(null); setForm({ ...empty, category: cats[0] || '', display_order: items.length + 1 }); setOpen(true); };
@@ -119,6 +121,7 @@ export default function ProductsPage() {
       sizes: cleanSizes(form.sizes),
       display_order: form.display_order,
       related_product_ids: form.related_product_ids,
+      badges: form.badges,
     };
 
     if (editing) {
@@ -248,6 +251,8 @@ export default function ProductsPage() {
                   <td data-label="Tags">
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       {p.is_featured && <span style={{ background: 'rgba(245,166,35,0.15)', color: '#f5a623', border: '1px solid rgba(245,166,35,0.3)', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600 }}>Featured</span>}
+                      {resolveBadges(p.badges).map(b => <span key={b.key} style={{ background: b.bg, color: '#fff', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>{b.label}</span>)}
+                      {(() => { const d = discountText(p.price, p.originalPrice, p.discount); return d ? <span style={{ background: '#eb1c24', color: '#fff', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 800 }}>{d}</span> : null; })()}
                     </div>
                   </td>
                   <td data-label="Status"><span className={`badge ${p.is_available ? 'badge-active' : 'badge-inactive'}`}>{p.is_available ? 'In Stock' : 'Out of Stock'}</span></td>
@@ -289,7 +294,11 @@ export default function ProductsPage() {
               <div className="form-group"><label className="form-label">Original Price</label><input className="form-input" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: e.target.value })} /></div>
             </div>
 
-            <div className="form-group"><label className="form-label">Discount Label</label><input className="form-input" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} placeholder="30% Off" /></div>
+            <div className="form-group"><label className="form-label">Discount Label</label><input className="form-input" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} placeholder="30% Off" />
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                {(() => { const d = discountText(form.price, form.originalPrice, form.discount); return d ? <>Badge on product: <span style={{ background: '#eb1c24', color: '#fff', padding: '1px 8px', borderRadius: 20, fontWeight: 800 }}>{d}</span> {form.originalPrice ? '(auto-calculated from Original Price)' : ''}</> : 'Set an Original Price higher than Price and the discount % is shown automatically.'; })()}
+              </p>
+            </div>
 
             <div className="form-row">
               <div className="form-group"><label className="form-label">Category</label>
@@ -397,6 +406,22 @@ export default function ProductsPage() {
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
                 Supports YouTube, Vimeo, or a direct .mp4 file URL. Leave blank to hide the video section.
               </p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Highlight Badges</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {PRODUCT_BADGES.map(b => {
+                  const on = form.badges.includes(b.key);
+                  return (
+                    <label key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 12px 6px 8px', borderRadius: 20, border: `1px solid ${on ? 'transparent' : 'rgba(255,255,255,0.15)'}`, background: on ? b.bg : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, transition: 'all .15s' }}>
+                      <input type="checkbox" checked={on} onChange={e => setForm({ ...form, badges: e.target.checked ? PRODUCT_BADGES.filter(x => x.key === b.key || form.badges.includes(x.key)).map(x => x.key) : form.badges.filter(k => k !== b.key) })} style={{ width: 14, height: 14, accentColor: '#fff' }} />
+                      {b.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>Ticked badges show on the top-left of the product image. The discount % shows on the top-right automatically.</p>
             </div>
 
             <div style={{ display: 'flex', gap: 20, margin: '20px 0' }}>

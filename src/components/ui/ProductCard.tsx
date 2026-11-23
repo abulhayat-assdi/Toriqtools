@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { pushEcommerce, toItem, normalizeCategory } from "@/lib/analytics";
+import { resolveBadges, discountText } from "@/lib/product-badges";
 
 export interface ProductCardProps {
   id: string;
@@ -24,7 +25,8 @@ export interface ProductCardProps {
   /** 1-based position within the list */
   index?: number;
   unavailable?: boolean;
-  isNew?: boolean;
+  /** Highlight badge keys ticked in admin (hot, new, best_seller, ...) */
+  badges?: unknown;
   priority?: boolean;
 }
 
@@ -44,7 +46,7 @@ export default function ProductCard({
   listName,
   index,
   unavailable,
-  isNew,
+  badges,
   priority = false,
 }: ProductCardProps) {
   const router = useRouter();
@@ -64,6 +66,8 @@ export default function ProductCard({
     : null;
 
   const categoryLabel = normalizeCategory(categoryName ?? category);
+  const highlightBadges = resolveBadges(badges);
+  const discountBadge = discountText(price, originalPrice, discount);
 
   function handleSelectItem() {
     pushEcommerce("select_item", {
@@ -121,19 +125,25 @@ export default function ProductCard({
             </div>
           )}
 
-          {/* Discount badge — top right, green */}
-          {discount && (
-            <span className="absolute top-2.5 right-2.5 bg-[#16a34a] text-white text-[10px] font-bold px-2 py-1 rounded-sm leading-none z-10">
-              {discount.toLowerCase().startsWith("save") || discount.includes("%")
-                ? discount
-                : `Save ${discount}`}
-            </span>
+          {/* Highlight badges (ticked in admin) — top left, stacked */}
+          {highlightBadges.length > 0 && (
+            <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1">
+              {highlightBadges.map((b) => (
+                <span
+                  key={b.key}
+                  style={{ background: b.bg }}
+                  className="text-white text-[9px] md:text-[10px] font-bold uppercase tracking-wide px-2 py-[5px] rounded-full leading-none shadow-[0_2px_6px_rgba(0,0,0,0.18)] whitespace-nowrap"
+                >
+                  {b.label}
+                </span>
+              ))}
+            </div>
           )}
 
-          {/* NEW badge — top left, only when no discount */}
-          {isNew && !discount && (
-            <span className="absolute top-2.5 left-2.5 bg-[#eb1c24] text-white text-[10px] font-bold px-2 py-1 rounded-sm leading-none uppercase z-10">
-              New
+          {/* Discount badge — top right, brand red */}
+          {discountBadge && (
+            <span className="absolute top-2 right-2 z-10 bg-[#eb1c24] text-white text-[10px] md:text-[11px] font-extrabold px-2 py-[5px] rounded-full leading-none shadow-[0_2px_6px_rgba(235,28,36,0.35)] whitespace-nowrap">
+              {discountBadge}
             </span>
           )}
         </div>
