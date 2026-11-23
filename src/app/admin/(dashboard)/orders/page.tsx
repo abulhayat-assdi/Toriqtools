@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, ShoppingBag, X, CheckCircle2, Package, ChevronDown, Send, Plus } from 'lucide-react';
+import { Search, ShoppingBag, X, CheckCircle2, Package, ChevronDown, Send, Plus, Download } from 'lucide-react';
+import { downloadCourierLabel } from '@/lib/courier-label';
 import toast, { Toaster } from 'react-hot-toast';
 import { LinesEditor, ManualOrderModal, linesSubtotal, newLineKey, type EditLine } from './order-tools';
 
@@ -30,6 +31,7 @@ type Order = {
   amount_paid: number;
   status: 'pending' | 'received' | 'preparing' | 'on_way' | 'delivered' | 'cancelled' | 'payment_failed' | 'returned' | 'incomplete';
   consignment_id?: string | null;
+  tracking_code?: string | null;
   placed_at: string;
   ip_address?: string | null;
   local_stats?: {
@@ -340,6 +342,7 @@ export default function OrdersPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [showManualOrder, setShowManualOrder] = useState(false);
   const [isSendingToCourier, setIsSendingToCourier] = useState<string | null>(null);
+  const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
   const [zoomedColor, setZoomedColor] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean; title: string; message: string; onConfirm: () => void; confirmText?: string; isDanger?: boolean;
@@ -523,13 +526,10 @@ export default function OrdersPage() {
       const data = await res.json();
       if (data.success) {
         const cid: string | null = data.consignment_id || null;
-        if (cid) {
-          toast.success(`✅ Courier-এ পাঠানো হয়েছে!\nConsignment ID: ${cid}`, { duration: 7000 });
-        } else {
-          toast.success('Parcel sent to Steadfast successfully!');
-        }
+        const tcode: string | null = data.tracking_code || null;
+        toast.success('✅ Courier-এ পাঠানো হয়েছে! এখন Download Receipt থেকে স্টিকার নামাতে পারবেন।', { duration: 6000 });
         if (selectedOrder && selectedOrder.id === order.id) {
-          setSelectedOrder(prev => prev ? { ...prev, consignment_id: cid } : null);
+          setSelectedOrder(prev => prev ? { ...prev, consignment_id: cid, tracking_code: tcode } : null);
         }
         fetchOrders(false);
       } else {
@@ -601,23 +601,48 @@ export default function OrdersPage() {
     </button>
   );
 
-  const renderConsignmentIdBadge = (order: Order, large = false) => (
-    large ? (
-      <div style={{ background: 'rgba(68,211,117,0.1)', border: '1px solid rgba(68,211,117,0.35)', borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
-        <p style={{ fontSize: 11, color: '#44d375', fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>📦 STEADFAST CONSIGNMENT ID</p>
-        <p style={{ fontSize: 24, fontWeight: 900, color: '#44d375', letterSpacing: 2 }}>#{order.consignment_id}</p>
-      </div>
-    ) : (
-      <span style={{
-        fontWeight: 800, color: '#44d375', fontSize: 12,
-        background: 'rgba(68,211,117,0.12)', padding: '5px 10px',
-        borderRadius: 6, border: '1px solid rgba(68,211,117,0.3)',
-        whiteSpace: 'nowrap',
-      }}>
-        #{order.consignment_id}
-      </span>
-    )
-  );
+  const handleDownloadLabel = async (order: Order) => {
+    setDownloadingLabel(order.id);
+    try {
+      await downloadCourierLabel(order);
+    } catch (err) {
+      toast.error('Receipt ডাউনলোড ব্যর্থ: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setDownloadingLabel(null);
+    }
+  };
+
+  const renderDownloadReceiptBtn = (order: Order, fullWidth = false) => {
+    const busy = downloadingLabel === order.id;
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); handleDownloadLabel(order); }}
+        disabled={busy}
+        title="Steadfast স্টিকার (PDF) ডাউনলোড করুন"
+        style={{
+          background: busy ? 'rgba(68,211,117,0.08)' : 'rgba(68,211,117,0.12)',
+          color: '#44d375',
+          border: '1px solid rgba(68,211,117,0.4)',
+          padding: fullWidth ? '12px 16px' : '6px 12px',
+          borderRadius: 8,
+          fontSize: fullWidth ? 15 : 12,
+          fontWeight: 700,
+          cursor: busy ? 'wait' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          width: fullWidth ? '100%' : 'auto',
+          whiteSpace: 'nowrap',
+          opacity: busy ? 0.7 : 1,
+          transition: 'all 0.2s',
+        }}
+      >
+        <Download size={fullWidth ? 16 : 13} />
+        {busy ? 'Preparing...' : 'Download Receipt'}
+      </button>
+    );
+  };
 
   const renderCompleteOrderBtn = (order: Order, fullWidth = false) => (
     <button
@@ -719,7 +744,7 @@ export default function OrdersPage() {
               <th>Address</th>
               <th>Total</th>
               <th>Ratio</th>
-              {activeTab === 'on_way' && <th>Consignment ID</th>}
+              {activeTab === 'on_way' && <th>Courier Receipt</th>}
               <th>Action</th>
             </tr>
           </thead>
@@ -828,15 +853,9 @@ export default function OrdersPage() {
 
                   {/* Consignment ID — shown only in Courier tab */}
                   {activeTab === 'on_way' && (
-                    <td data-label="Consignment ID" onClick={e => e.stopPropagation()}>
+                    <td data-label="Courier Receipt" onClick={e => e.stopPropagation()}>
                       {order.consignment_id ? (
-                        <span style={{
-                          fontWeight: 800, color: '#44d375', fontSize: 13,
-                          background: 'rgba(68,211,117,0.12)', padding: '3px 10px',
-                          borderRadius: 6, border: '1px solid rgba(68,211,117,0.3)',
-                        }}>
-                          #{order.consignment_id}
-                        </span>
+                        renderDownloadReceiptBtn(order)
                       ) : (
                         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>—</span>
                       )}
@@ -847,11 +866,11 @@ export default function OrdersPage() {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                       {/* View button removed from here */}
 
-                      {/* New / Pending → Send to Courier, or (once sent) Consignment ID + Complete Order */}
+                      {/* New / Pending → Send to Courier, or (once sent) Download Receipt + Complete Order */}
                       {(order.status === 'pending' || order.status === 'received' || order.status === 'preparing') && (
                         order.consignment_id ? (
                           <>
-                            {renderConsignmentIdBadge(order)}
+                            {renderDownloadReceiptBtn(order)}
                             {renderCompleteOrderBtn(order)}
                           </>
                         ) : (
@@ -948,13 +967,6 @@ export default function OrdersPage() {
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Placed on {new Date(selectedOrder.placed_at).toLocaleString()}</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Steadfast ID badge in header */}
-                {selectedOrder.consignment_id && (
-                  <div style={{ background: 'rgba(68,211,117,0.15)', border: '1px solid rgba(68,211,117,0.4)', borderRadius: 8, padding: '6px 14px', textAlign: 'center' }}>
-                    <p style={{ fontSize: 10, color: '#44d375', fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>STEADFAST ID</p>
-                    <p style={{ fontSize: 16, fontWeight: 900, color: '#44d375' }}>#{selectedOrder.consignment_id}</p>
-                  </div>
-                )}
                 <span className="badge badge-active" style={{ fontSize: 12, textTransform: 'uppercase', background: 'rgba(255,255,255,0.1)' }}>
                   {selectedOrder.status.replace('_', ' ')}
                 </span>
@@ -1359,11 +1371,11 @@ export default function OrdersPage() {
                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Actions</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-                  {/* Pending → Send to Courier, or (once sent) Consignment ID + Complete Order */}
+                  {/* Pending → Send to Courier, or (once sent) Download Receipt + Complete Order */}
                   {(selectedOrder.status === 'pending' || selectedOrder.status === 'received' || selectedOrder.status === 'preparing') && (
                     selectedOrder.consignment_id ? (
                       <>
-                        {renderConsignmentIdBadge(selectedOrder, true)}
+                        {renderDownloadReceiptBtn(selectedOrder, true)}
                         {renderCompleteOrderBtn(selectedOrder, true)}
                       </>
                     ) : (
@@ -1371,15 +1383,10 @@ export default function OrdersPage() {
                     )
                   )}
 
-                  {/* On the Way → show consignment ID + delivery outcome */}
+                  {/* On the Way → Download Receipt + delivery outcome */}
                   {selectedOrder.status === 'on_way' && (
                     <>
-                      {selectedOrder.consignment_id && (
-                        <div style={{ background: 'rgba(68,211,117,0.1)', border: '1px solid rgba(68,211,117,0.35)', borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
-                          <p style={{ fontSize: 11, color: '#44d375', fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>📦 STEADFAST CONSIGNMENT ID</p>
-                          <p style={{ fontSize: 24, fontWeight: 900, color: '#44d375', letterSpacing: 2 }}>#{selectedOrder.consignment_id}</p>
-                        </div>
-                      )}
+                      {selectedOrder.consignment_id && renderDownloadReceiptBtn(selectedOrder, true)}
                       <div style={{ position: 'relative', width: '100%' }}>
                         <select
                           onChange={(e) => { if (e.target.value) updateStatus(selectedOrder.id, e.target.value as Order['status']); e.target.value = ''; }}

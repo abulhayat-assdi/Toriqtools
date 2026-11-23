@@ -84,6 +84,7 @@ model Order {
   status           String      @default("pending")
   capi_sent        Boolean     @default(false)
   consignment_id   String?
+  tracking_code    String?
   draft_session_id String?
   ip_address       String?
   placed_at        DateTime    @default(now())

@@ -70,13 +70,16 @@ export async function POST(req: NextRequest) {
     const consignmentId = result?.consignment?.consignment_id
       ? String(result.consignment.consignment_id)
       : null;
+    const trackingCode = result?.consignment?.tracking_code
+      ? String(result.consignment.tracking_code)
+      : null;
 
     // Success from Steadfast — save consignment_id (status stays as-is; order remains
     // in the New Orders tab until manually marked complete via "Complete Order")
     if (consignmentId) {
       await prisma.order.update({
         where: { id: order_id },
-        data: { consignment_id: consignmentId },
+        data: { consignment_id: consignmentId, tracking_code: trackingCode },
       });
     }
 
@@ -84,6 +87,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Parcel sent to Steadfast successfully!',
       consignment_id: consignmentId,
+      tracking_code: trackingCode,
       data: result,
     });
   } catch (error: unknown) {
