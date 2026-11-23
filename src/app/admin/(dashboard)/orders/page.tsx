@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, ShoppingBag, X, CheckCircle2, Package, ChevronDown, Send } from 'lucide-react';
+import { Search, ShoppingBag, X, CheckCircle2, Package, ChevronDown, Send, Plus } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { LinesEditor, ManualOrderModal, linesSubtotal, newLineKey, type EditLine } from './order-tools';
 
 type OrderItem = {
   id: string;
@@ -333,8 +334,11 @@ export default function OrdersPage() {
     address: string;
     shipping: number;
     discount: number;
-    items: Array<{ id: string; product_name: string; size: string; price: number; quantity: number }>;
+    items: EditLine[];
   }>({ name: '', phone: '', address: '', shipping: 0, discount: 0, items: [] });
+  const [removedItemIds, setRemovedItemIds] = useState<string[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [showManualOrder, setShowManualOrder] = useState(false);
   const [isSendingToCourier, setIsSendingToCourier] = useState<string | null>(null);
   const [zoomedColor, setZoomedColor] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -417,30 +421,43 @@ export default function OrdersPage() {
   };
 
   const calculateEditTotals = (form: typeof editForm) => {
-    const subtotal = form.items.reduce((acc, item) => acc + (Number(item.price) * Number(item.quantity)), 0);
+    const subtotal = linesSubtotal(form.items);
     const total = subtotal + Number(form.shipping) - Number(form.discount);
     return { subtotal, total };
   };
 
-  const handleItemChange = (index: number, field: string, value: string | number) => {
-    setEditForm(prev => {
-      const updatedItems = [...prev.items];
-      updatedItems[index] = {
-        ...updatedItems[index],
-        [field]: value
-      };
-      return {
-        ...prev,
-        items: updatedItems
-      };
+  const startEditing = (order: Order) => {
+    setEditForm({
+      name: order.customer_name,
+      phone: order.phone,
+      address: order.address,
+      shipping: Number(order.shipping),
+      discount: Number(order.discount),
+      items: (order.items || []).map(item => ({
+        key: newLineKey(),
+        id: item.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        image_url: item.image_url || '',
+        size: item.size || '',
+        color: item.color || '',
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+      })),
     });
+    setRemovedItemIds([]);
+    setIsEditing(true);
   };
 
   const saveCustomerInfo = async () => {
-    if (!selectedOrder) return;
-    
+    if (!selectedOrder || isSavingEdit) return;
+    if (editForm.items.length === 0) {
+      toast.error('অর্ডারে অন্তত একটি প্রোডাক্ট থাকতে হবে');
+      return;
+    }
+
     const { subtotal, total } = calculateEditTotals(editForm);
-    
+
     const payload = {
       id: selectedOrder.id,
       customer_name: editForm.name,
@@ -450,43 +467,39 @@ export default function OrdersPage() {
       discount: editForm.discount,
       subtotal,
       total,
+      removed_item_ids: removedItemIds,
+      // Lines without an id are products newly added to this order.
       items: editForm.items.map(item => ({
         id: item.id,
+        product_id: item.product_id,
         size: item.size || null,
+        color: item.color || null,
         price: item.price,
-        quantity: item.quantity
-      }))
+        quantity: item.quantity,
+      })),
     };
 
-    const res = await fetch('/api/admin/orders', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      alert('Failed to save order info');
-    } else {
-      const result = await res.json();
-      if (result.data) {
-        setSelectedOrder(result.data);
-      } else {
-        setSelectedOrder({
-          ...selectedOrder,
-          customer_name: editForm.name,
-          phone: editForm.phone,
-          address: editForm.address,
-          shipping: editForm.shipping,
-          discount: editForm.discount,
-          subtotal,
-          total,
-          items: selectedOrder.items?.map(it => {
-            const edited = editForm.items.find(e => e.id === it.id);
-            return edited ? { ...it, size: edited.size || null, price: edited.price, quantity: edited.quantity } : it;
-          })
-        });
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(result.error || 'Failed to save order info');
+        return;
       }
+      if (result.data) setSelectedOrder(result.data);
       setIsEditing(false);
+      setRemovedItemIds([]);
+      toast.success('অর্ডার আপডেট হয়েছে');
       fetchOrders(false);
+    } catch (err: unknown) {
+      toast.error(`System error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -653,6 +666,13 @@ export default function OrdersPage() {
             <h1 className="page-title">Order Management</h1>
             <p className="page-subtitle">Track, update and manage customer orders.</p>
           </div>
+          <div className="order-header-actions" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowManualOrder(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #4a9eff 0%, #2563eb 100%)', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(74,158,255,0.35)' }}
+          >
+            <Plus size={16} /> নতুন অর্ডার
+          </button>
           <div className="order-search-wrap" style={{ position: 'relative', width: 280 }}>
             <Search size={16} color="rgba(255,255,255,0.4)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
             <input
@@ -662,6 +682,7 @@ export default function OrdersPage() {
               onChange={e => setSearch(e.target.value)}
               style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px 10px 38px', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
             />
+          </div>
           </div>
         </div>
 
@@ -946,7 +967,22 @@ export default function OrdersPage() {
             <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24 }}>
               {/* Left: Items + Delivery */}
               <div>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Items Ordered</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>Items Ordered</h3>
+                  {!isEditing && (
+                    <button
+                      onClick={() => startEditing(selectedOrder)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(74,158,255,0.1)', border: '1px solid rgba(74,158,255,0.3)', color: '#4a9eff', fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 6, cursor: 'pointer' }}
+                    >
+                      <Plus size={13} /> প্রোডাক্ট যোগ / এডিট
+                    </button>
+                  )}
+                </div>
+                {isEditing && selectedOrder.consignment_id && (
+                  <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.3)', color: '#f5a623', fontSize: 12, lineHeight: 1.5 }}>
+                    ⚠️ এই অর্ডারটি ইতিমধ্যে কুরিয়ারে পাঠানো হয়েছে। এখানে পরিবর্তন করলে Steadfast-এ COD অ্যামাউন্ট নিজে থেকে আপডেট হবে না — কুরিয়ার প্যানেলেও ঠিক করে নিন।
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
                   {!isEditing ? (
                     selectedOrder.items?.map((item, i) => (
@@ -1008,43 +1044,17 @@ export default function OrdersPage() {
                       </div>
                     ))
                   ) : (
-                    editForm.items?.map((item, index) => (
-                      <div key={index} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.07)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <p style={{ fontWeight: 600, fontSize: 14, color: '#fff' }}>{item.product_name}</p>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Size</label>
-                            <input
-                              type="text"
-                              value={item.size}
-                              onChange={e => handleItemChange(index, 'size', e.target.value)}
-                              style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 8px', borderRadius: 4, color: '#fff', fontSize: 12 }}
-                              placeholder="e.g. M, XL"
-                            />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Price (৳)</label>
-                            <input
-                              type="number"
-                              value={item.price}
-                              onChange={e => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 8px', borderRadius: 4, color: '#fff', fontSize: 12 }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Quantity</label>
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
-                              style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 8px', borderRadius: 4, color: '#fff', fontSize: 12 }}
-                              min="1"
-                            />
-                          </div>
-                        </div>
+                    <>
+                      <LinesEditor
+                        lines={editForm.items}
+                        setLines={updater => setEditForm(prev => ({ ...prev, items: updater(prev.items) }))}
+                        onRemoveSaved={id => setRemovedItemIds(prev => [...prev, id])}
+                      />
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setIsEditing(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 13, padding: '8px 14px', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={saveCustomerInfo} disabled={isSavingEdit} style={{ background: '#4a9eff', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, padding: '8px 16px', borderRadius: 6, cursor: isSavingEdit ? 'not-allowed' : 'pointer', opacity: isSavingEdit ? 0.6 : 1 }}>{isSavingEdit ? 'Saving...' : 'Save Changes'}</button>
                       </div>
-                    ))
+                    </>
                   )}
                 </div>
 
@@ -1052,23 +1062,7 @@ export default function OrdersPage() {
                   <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>Delivery Information</h3>
                   {!isEditing ? (
                     <button
-                      onClick={() => {
-                        setEditForm({
-                          name: selectedOrder.customer_name,
-                          phone: selectedOrder.phone,
-                          address: selectedOrder.address,
-                          shipping: Number(selectedOrder.shipping),
-                          discount: Number(selectedOrder.discount),
-                          items: (selectedOrder.items || []).map(item => ({
-                            id: item.id,
-                            product_name: item.product_name,
-                            size: item.size || '',
-                            price: Number(item.price),
-                            quantity: Number(item.quantity)
-                          }))
-                        });
-                        setIsEditing(true);
-                      }}
+                      onClick={() => startEditing(selectedOrder)}
                       style={{ background: 'none', border: 'none', color: '#4a9eff', fontSize: 12, cursor: 'pointer' }}
                     >
                       Edit Info
@@ -1076,7 +1070,7 @@ export default function OrdersPage() {
                   ) : (
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-                      <button onClick={saveCustomerInfo} style={{ background: '#4a9eff', border: 'none', color: '#fff', fontSize: 12, padding: '4px 8px', borderRadius: 4, cursor: 'pointer' }}>Save</button>
+                      <button onClick={saveCustomerInfo} disabled={isSavingEdit} style={{ background: '#4a9eff', border: 'none', color: '#fff', fontSize: 12, padding: '4px 8px', borderRadius: 4, cursor: isSavingEdit ? 'not-allowed' : 'pointer', opacity: isSavingEdit ? 0.6 : 1 }}>{isSavingEdit ? 'Saving...' : 'Save'}</button>
                     </div>
                   )}
                 </div>
@@ -1498,6 +1492,18 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showManualOrder && (
+        <ManualOrderModal
+          onClose={() => setShowManualOrder(false)}
+          onCreated={(order) => {
+            setShowManualOrder(false);
+            setActiveTab('pending');
+            fetchOrders(false);
+            if (order) setSelectedOrder(order);
+          }}
+        />
       )}
 
       <ConfirmModal
