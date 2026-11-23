@@ -24,22 +24,22 @@ export default function Bestsellers({ initialProducts = [] }: { initialProducts?
 
   return (
     <section className="bg-[#f9f9f9] py-5 md:py-12">
-      <ViewItemListTracker listId="featured-products" listName="Featured Products" products={displayed} />
+      <ViewItemListTracker listId="best-selling-products" listName="Best Selling Products" products={displayed} />
       <div className="mx-auto max-w-[1280px] px-3 md:px-10">
 
         {/* Header */}
         <div className="mb-3 md:mb-8 text-center">
-          <p className="section-eyebrow mb-1">Explore Our Collection</p>
-          <h2 className="text-[16px] md:text-[28px] font-bold text-[#1a1a1a]">Featured Products</h2>
+          <p className="section-eyebrow mb-1">Customer Favourites</p>
+          <h2 className="text-[16px] md:text-[28px] font-bold text-[#1a1a1a]">Best Selling Products</h2>
         </div>
 
         {/* Product Grid */}
         {displayed.length === 0 ? (
           <div className="text-center py-16 text-[#999]">কোনো পণ্য পাওয়া যায়নি।</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {displayed.map((product, i) => (
-              <ProductCard key={product.id} {...product} listId="featured-products" listName="Featured Products" index={i + 1} />
+              <ProductCard key={product.id} {...product} priority={i < 2} listId="best-selling-products" listName="Best Selling Products" index={i + 1} />
             ))}
           </div>
         )}

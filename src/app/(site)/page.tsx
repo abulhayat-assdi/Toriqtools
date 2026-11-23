@@ -1,13 +1,15 @@
 import { unstable_cache } from "next/cache";
 import HeroBanner from "@/components/home/HeroBanner";
 import TrustBadges from "@/components/home/TrustBadges";
-import CategoryGrid from "@/components/home/CategoryGrid";
+import Bestsellers from "@/components/home/Bestsellers";
 import CategorySections from "@/components/home/CategorySections";
 import ComboSection from "@/components/home/ComboSection";
 import CustomerReviews from "@/components/home/CustomerReviews";
 import { prisma } from "@/lib/db";
 
 export const revalidate = 3600;
+
+const BEST_SELLER_LIMIT = 8;
 
 export const metadata = { alternates: { canonical: "/" } };
 
@@ -24,11 +26,29 @@ const getHomeData = unstable_cache(
         select: {
           id: true, slug: true, name: true, detail: true, price: true,
           original_price: true, discount: true, media_urls: true,
-          category: true, is_available: true,
+          category: true, is_available: true, is_featured: true,
         },
       }),
     ]);
-    return { categories, allProducts };
+    // Best sellers: rank by units sold on real orders, then top up with
+    // admin-featured products, then by display order, up to BEST_SELLER_LIMIT.
+    const sold = await prisma.orderItem.groupBy({
+      by: ["product_id"],
+      where: { order: { status: { notIn: ["cancelled", "returned", "incomplete"] } } },
+      _sum: { quantity: true },
+    });
+    const soldQty = new Map(sold.map(s => [s.product_id, s._sum.quantity ?? 0]));
+    const bestSellers = allProducts
+      .map((p, i) => ({ p, i, qty: soldQty.get(p.id) ?? 0 }))
+      .sort((a, b) =>
+        b.qty - a.qty ||
+        Number(b.p.is_featured) - Number(a.p.is_featured) ||
+        a.i - b.i
+      )
+      .slice(0, BEST_SELLER_LIMIT)
+      .map(x => x.p);
+
+    return { categories, allProducts, bestSellers };
   },
   ["home-data"],
   { revalidate: 3600, tags: ["products", "categories"] }
@@ -37,10 +57,12 @@ const getHomeData = unstable_cache(
 export default async function Home() {
   let categories: any[] = [];
   let allProducts: any[] = [];
+  let bestSellers: Awaited<ReturnType<typeof getHomeData>>["bestSellers"] = [];
   try {
     const data = await getHomeData();
     categories = data.categories;
     allProducts = data.allProducts;
+    bestSellers = data.bestSellers;
   } catch {
     // DB unavailable at build time
   }
@@ -49,7 +71,7 @@ export default async function Home() {
     <>
       <HeroBanner />
       <TrustBadges />
-      <CategoryGrid initialCategories={categories || []} />
+      {bestSellers.length > 0 && <Bestsellers initialProducts={bestSellers} />}
       <CategorySections categories={categories || []} products={allProducts || []} />
       <ComboSection />
       <CustomerReviews />
