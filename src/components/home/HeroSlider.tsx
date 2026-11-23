@@ -75,7 +75,7 @@ export default function HeroSlider({ banners, heroText = {} }: HeroSliderProps) 
         className="block relative w-full aspect-[16/9] md:aspect-auto md:h-[90vh] md:max-h-[800px] bg-[#1a1a1a]"
       >
         <div className="relative z-10 flex h-full items-center px-6 md:px-20">
-          <div className="max-w-[520px]">
+          <div className="max-w-[520px] [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
             {heroText.eyebrow && (
               <p className="text-[10px] md:text-[12px] font-semibold uppercase tracking-[0.2em] text-white/80 mb-2 md:mb-4">
                 {heroText.eyebrow}
@@ -125,7 +125,6 @@ export default function HeroSlider({ banners, heroText = {} }: HeroSliderProps) 
               sizes="100vw"
               quality={85}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
           </div>
         ))}
 
@@ -142,7 +141,7 @@ export default function HeroSlider({ banners, heroText = {} }: HeroSliderProps) 
           underneath stays clickable; only the button re-enables them. */}
       {(heroText.eyebrow || heroText.title || heroText.subtitle || heroText.btn_text) && (
         <div className="relative z-20 flex h-full items-center px-6 md:px-20 pointer-events-none">
-          <div className="max-w-[520px]">
+          <div className="max-w-[520px] [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
             {heroText.eyebrow && (
               <p className="text-[10px] md:text-[12px] font-semibold uppercase tracking-[0.2em] text-white/80 mb-2 md:mb-4">
                 {heroText.eyebrow}
