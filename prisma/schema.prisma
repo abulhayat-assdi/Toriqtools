@@ -35,6 +35,9 @@ model Product {
   packaging      String?
   media_urls     Json            @default("[]")
   category       String
+  // Optional subcategory name (a child of `category`). `category` always holds
+  // the top-level category so parent listings include subcategory products.
+  subcategory    String?
   video_url      String?
   is_available   Boolean         @default(true)
   is_featured    Boolean         @default(false)
@@ -114,7 +117,12 @@ model Category {
   show_in_footer  Boolean  @default(false)
   display_order   Int      @default(0)
   created_at      DateTime @default(now())
+  // Set when this category is a subcategory of another (one level deep).
+  parent_id       String?
+  parent          Category?  @relation("CategoryTree", fields: [parent_id], references: [id], onDelete: SetNull)
+  children        Category[] @relation("CategoryTree")
 
+  @@index([parent_id])
   @@map("categories")
 }
 

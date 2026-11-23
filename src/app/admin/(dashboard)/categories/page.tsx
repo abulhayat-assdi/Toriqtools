@@ -14,9 +14,10 @@ type Category = {
   show_in_header: boolean;
   show_in_footer: boolean;
   display_order: number;
+  parent_id: string | null;
 };
 
-const empty = { name: '', slug: '', image_url: '', is_active: true, show_in_header: false, show_in_footer: false, display_order: 1 };
+const empty = { name: '', slug: '', image_url: '', is_active: true, show_in_header: false, show_in_footer: false, display_order: 1, parent_id: '' };
 
 export default function CategoriesPage() {
   const confirm = useConfirm();
@@ -38,35 +39,40 @@ export default function CategoriesPage() {
     setLoading(false);
   }
 
-  const openNew = () => {
+  // Top-level categories, each followed by its subcategories.
+  const topLevel = items.filter(c => !c.parent_id || !items.some(p => p.id === c.parent_id));
+  const rows = topLevel.flatMap(c => [c, ...items.filter(s => s.parent_id === c.id)]);
+  const nameOf = (id: string | null) => items.find(c => c.id === id)?.name;
+
+  const openNew = (parentId = '') => {
     setEditing(null);
-    setForm({ ...empty, display_order: items.length + 1 });
+    const siblings = items.filter(c => (c.parent_id || '') === parentId);
+    setForm({ ...empty, parent_id: parentId, display_order: siblings.length + 1 });
     setOpen(true);
   };
 
   const openEdit = (c: Category) => {
     setEditing(c);
-    setForm({ name: c.name, slug: c.slug, image_url: c.image_url, is_active: c.is_active, show_in_header: c.show_in_header ?? false, show_in_footer: c.show_in_footer ?? false, display_order: c.display_order });
+    setForm({ name: c.name, slug: c.slug, image_url: c.image_url, is_active: c.is_active, show_in_header: c.show_in_header ?? false, show_in_footer: c.show_in_footer ?? false, display_order: c.display_order, parent_id: c.parent_id || '' });
     setOpen(true);
   };
 
+  // A category can be moved under another top-level category only if it has
+  // no subcategories of its own (one level deep).
+  const editingHasChildren = !!editing && items.some(c => c.parent_id === editing.id);
+  const parentOptions = topLevel.filter(c => c.id !== editing?.id);
+
   const save = async () => {
-    if (editing) {
-      const res = await fetch('/api/admin/categories', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editing.id, ...form }),
-      });
-      const data = await res.json();
-      if (!res.ok) alert(data.error);
-    } else {
-      const res = await fetch('/api/admin/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) alert(data.error);
+    const payload = { ...form, parent_id: form.parent_id || null };
+    const res = await fetch('/api/admin/categories', {
+      method: editing ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editing ? { id: editing.id, ...payload } : payload),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Save failed');
+      return;
     }
     setOpen(false);
     fetchCategories();
@@ -103,9 +109,9 @@ export default function CategoriesPage() {
       <div className="page-heading">
         <div>
           <h1 className="page-title">Categories</h1>
-          <p className="page-subtitle">Manage the 4 shop categories shown in the homepage grid.</p>
+          <p className="page-subtitle">Manage shop categories and their subcategories.</p>
         </div>
-        <button className="btn-primary-admin" onClick={openNew}><Plus size={15} /> Add Category</button>
+        <button className="btn-primary-admin" onClick={() => openNew()}><Plus size={15} /> Add Category</button>
       </div>
 
       <div className="data-table-wrap">
@@ -114,11 +120,18 @@ export default function CategoriesPage() {
           <tbody>
             {items.length === 0 ? (
               <tr><td colSpan={6} className="empty-state">No categories found.</td></tr>
-            ) : items.map(c => (
-              <tr key={c.id}>
-                <td data-label="Order" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>#{c.display_order}</td>
-                <td data-label="Image"><img src={c.image_url} alt="" className="thumb" /></td>
-                <td data-label="Name" style={{ fontWeight: 600 }}>{c.name}</td>
+            ) : rows.map(c => (
+              <tr key={c.id} style={c.parent_id ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
+                <td data-label="Order" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, paddingLeft: c.parent_id ? 28 : undefined }}>#{c.display_order}</td>
+                <td data-label="Image">{c.image_url ? <img src={c.image_url} alt="" className="thumb" /> : null}</td>
+                <td data-label="Name" style={{ fontWeight: c.parent_id ? 500 : 600 }}>
+                  {c.parent_id ? (
+                    <span style={{ paddingLeft: 16 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.35)', marginRight: 6 }}>↳</span>{c.name}
+                      <span style={{ display: 'block', paddingLeft: 22, fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>Sub of {nameOf(c.parent_id)}</span>
+                    </span>
+                  ) : c.name}
+                </td>
                 <td data-label="Slug"><code style={{ background: 'rgba(255,255,255,0.07)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{c.slug}</code></td>
                 <td data-label="Status">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -129,6 +142,9 @@ export default function CategoriesPage() {
                 </td>
                 <td data-label="Actions">
                   <div style={{ display: 'flex', gap: 8 }}>
+                    {!c.parent_id && (
+                      <button className="btn-edit" onClick={() => openNew(c.id)} title="Add subcategory"><Plus size={13} /> Sub</button>
+                    )}
                     <button className="btn-edit" onClick={() => openEdit(c)}><Pencil size={13} /> Edit</button>
                     <button className="btn-danger" onClick={() => remove(c.id)}><Trash2 size={13} /></button>
                   </div>
@@ -143,12 +159,29 @@ export default function CategoriesPage() {
         <div className="modal-overlay" onClick={() => setOpen(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-title">
-              {editing ? 'Edit Category' : 'Add Category'}
+              {editing ? (form.parent_id ? 'Edit Subcategory' : 'Edit Category') : (form.parent_id ? 'Add Subcategory' : 'Add Category')}
               <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
             <div className="form-row">
               <div className="form-group"><label className="form-label">Name</label><input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
               <div className="form-group"><label className="form-label">Slug</label><input className="form-input" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="flower-tea" /></div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Parent Category</label>
+              <select
+                className="form-select"
+                value={form.parent_id}
+                onChange={e => setForm({ ...form, parent_id: e.target.value })}
+                disabled={editingHasChildren}
+              >
+                <option value="">— None (main category) —</option>
+                {parentOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              {editingHasChildren && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
+                  এই ক্যাটাগরির সাব-ক্যাটাগরি আছে, তাই এটাকে অন্য ক্যাটাগরির আন্ডারে নেওয়া যাবে না।
+                </p>
+              )}
             </div>
             <ImageUpload
               label="Category Image"

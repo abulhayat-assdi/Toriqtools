@@ -15,6 +15,9 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, itemId: "", title: "", message: "" });
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [navCategories, setNavCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [subCategories, setSubCategories] = useState<{ id: string; name: string; slug: string; parent_id: string }[]>([]);
+  const catHref = (c: { slug: string; name: string }) => `/collections/${c.slug || c.name.toLowerCase().replace(/\s+/g, "-")}`;
+  const subsOf = (id: string) => subCategories.filter(s => s.parent_id === id);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState<any>(null);
@@ -43,8 +46,13 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
   useEffect(() => {
     fetch("/api/categories").then(r => r.json()).then(json => {
       if (json.data) {
-        const headerCats = json.data.filter((c: any) => c.show_in_header);
-        setNavCategories(headerCats.length > 0 ? headerCats : json.data.slice(0, 6));
+        // Main categories in the nav; subcategories nest under their parent.
+        type ApiCat = { id: string; name: string; slug: string; parent_id: string | null; show_in_header?: boolean };
+        const all: ApiCat[] = json.data;
+        const mainCats = all.filter(c => !c.parent_id);
+        const headerCats = mainCats.filter(c => c.show_in_header);
+        setNavCategories(headerCats.length > 0 ? headerCats : mainCats.slice(0, 6));
+        setSubCategories(all.filter((c): c is ApiCat & { parent_id: string } => !!c.parent_id));
       }
     });
   }, []);
@@ -253,16 +261,35 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
             >
               Home
             </Link>
-            {navCategories.map(cat => (
-              <Link
-                key={cat.id}
-                href={`/collections/${cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-")}`}
-                prefetch={true}
-                className="px-3 py-1.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
-              >
-                {cat.name}
-              </Link>
-            ))}
+            {navCategories.map(cat => {
+              const subs = subsOf(cat.id);
+              return (
+                <div key={cat.id} className="relative group">
+                  <Link
+                    href={catHref(cat)}
+                    prefetch={true}
+                    className="block px-3 py-1.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+                  >
+                    {cat.name}
+                  </Link>
+                  {subs.length > 0 && (
+                    <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-0 top-full z-[90] pt-1">
+                      <div className="min-w-[180px] rounded-md bg-white py-1.5 shadow-xl border border-[#eee]">
+                        {subs.map(sub => (
+                          <Link
+                            key={sub.id}
+                            href={catHref(sub)}
+                            className="block px-4 py-2 text-[14px] text-[#333] hover:bg-[#f5f5f5] hover:text-[#eb1c24] transition-colors"
+                          >
+                            {sub.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <Link
               href="/pages/contact"
               className="px-3 py-1.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
@@ -320,15 +347,26 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
                 Home
               </Link>
               {navCategories.map(cat => (
-                <Link
-                  key={cat.id}
-                  href={`/collections/${cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  prefetch={true}
-                  onClick={() => setMenuOpen(false)}
-                  className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  {cat.name}
-                </Link>
+                <div key={cat.id} className="flex flex-col">
+                  <Link
+                    href={catHref(cat)}
+                    prefetch={true}
+                    onClick={() => setMenuOpen(false)}
+                    className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    {cat.name}
+                  </Link>
+                  {subsOf(cat.id).map(sub => (
+                    <Link
+                      key={sub.id}
+                      href={catHref(sub)}
+                      onClick={() => setMenuOpen(false)}
+                      className="ml-4 pl-4 pr-4 py-2 text-[14px] text-white/65 hover:text-white hover:bg-white/10 rounded-lg border-l border-white/15 transition-colors"
+                    >
+                      {sub.name}
+                    </Link>
+                  ))}
+                </div>
               ))}
               <Link href="/collections/all" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                 All Products

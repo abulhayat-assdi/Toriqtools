@@ -17,7 +17,8 @@ const getHomeData = unstable_cache(
   async () => {
     const [categories, allProducts] = await Promise.all([
       prisma.category.findMany({
-        where: { is_active: true },
+        // Main categories only; subcategory products are listed under their parent.
+        where: { is_active: true, parent_id: null },
         orderBy: { display_order: "asc" },
       }),
       prisma.product.findMany({

@@ -16,7 +16,7 @@ const fetchCollectionData = unstable_cache(
     prisma.category.findMany({
       where: { is_active: true },
       orderBy: { display_order: "asc" },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, parent_id: true },
     }),
     prisma.product.findMany({
       where: { is_available: true },
@@ -31,6 +31,7 @@ const fetchCollectionData = unstable_cache(
         discount: true,
         media_urls: true,
         category: true,
+        subcategory: true,
         is_available: true,
       },
     }),
@@ -103,11 +104,11 @@ export default async function CollectionPage({ params }: PageProps) {
       ? []
       : rawCategory.split("%2B").flatMap((c) => c.split("+"));
 
-  let categoriesData: { id: string; name: string; slug: string | null }[] = [];
+  let categoriesData: { id: string; name: string; slug: string | null; parent_id: string | null }[] = [];
   let productsData: {
     id: string; slug: string; name: string; detail: string | null;
     price: string; original_price: string | null; discount: string | null;
-    media_urls: unknown; category: string; is_available: boolean;
+    media_urls: unknown; category: string; subcategory: string | null; is_available: boolean;
   }[] = [];
 
   try {
@@ -122,20 +123,31 @@ export default async function CollectionPage({ params }: PageProps) {
     id: c.id,
     name: c.name,
     slug: c.slug || c.name.toLowerCase().replace(/\s+/g, "-"),
+    parentId: c.parent_id,
   }));
 
   // Map normalised category name → authoritative slug from DB
   // This ensures product.category ("Some Category") correctly resolves to
   // the same slug used in the URL ("some-category"), even if the category
-  // was renamed or has irregular spacing.
+  // was renamed or has irregular spacing. Subcategories are keyed by
+  // "parent|sub" since a subcategory name is only unique within its parent.
+  const norm = (s: string | null) => (s || "").toLowerCase().trim();
   const nameToSlug: Record<string, string> = {};
   for (const c of categories) {
-    nameToSlug[c.name.toLowerCase().trim()] = c.slug;
+    if (c.parentId) {
+      const parent = categories.find((p) => p.id === c.parentId);
+      if (parent) nameToSlug[`${norm(parent.name)}|${norm(c.name)}`] = c.slug;
+    } else {
+      nameToSlug[norm(c.name)] = c.slug;
+    }
   }
 
   const products = productsData.map((p) => {
-    const normName = (p.category || "").toLowerCase().trim();
+    const normName = norm(p.category);
     const categorySlug = nameToSlug[normName] ?? normName.replace(/\s+/g, "-");
+    const subcategorySlug = p.subcategory
+      ? nameToSlug[`${normName}|${norm(p.subcategory)}`] ?? norm(p.subcategory).replace(/\s+/g, "-")
+      : undefined;
     return {
       id: p.id,
       slug: p.slug,
@@ -150,6 +162,7 @@ export default async function CollectionPage({ params }: PageProps) {
           ? (p.media_urls as string[])[0]
           : "https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=900",
       category: categorySlug,
+      subcategory: subcategorySlug,
       unavailable: !p.is_available,
     };
   });

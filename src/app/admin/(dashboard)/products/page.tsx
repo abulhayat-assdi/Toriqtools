@@ -14,7 +14,7 @@ type SizeItem = SizeOption;
 type Product = {
   id: string; slug?: string; name: string; detail: string; description: string; price: string; originalPrice: string;
   discount: string; media_urls: string[]; video_url: string;
-  category: string; is_available: boolean; is_featured: boolean; faqs: FAQ[];
+  category: string; subcategory: string; is_available: boolean; is_featured: boolean; faqs: FAQ[];
   colors: string[]; sizes: SizeItem[]; display_order: number;
   related_product_ids: string[];
 };
@@ -33,12 +33,20 @@ const cleanSizes = (sizes: SizeItem[]): SizeItem[] => {
   return out;
 };
 
-const empty: Omit<Product, 'id' | 'slug'> = { name: '', detail: '', description: '', price: '', originalPrice: '', discount: '', media_urls: [], video_url: '', category: '', is_available: true, is_featured: false, faqs: [], colors: [], sizes: [], display_order: 1, related_product_ids: [] };
+type Cat = { id: string; name: string; parent_id: string | null };
+
+const empty: Omit<Product, 'id' | 'slug'> = { name: '', detail: '', description: '', price: '', originalPrice: '', discount: '', media_urls: [], video_url: '', category: '', subcategory: '', is_available: true, is_featured: false, faqs: [], colors: [], sizes: [], display_order: 1, related_product_ids: [] };
 
 export default function ProductsPage() {
   const confirm = useConfirm();
   const [items, setItems] = useState<Product[]>([]);
-  const [cats, setCats] = useState<string[]>([]);
+  const [allCats, setAllCats] = useState<Cat[]>([]);
+  // Top-level category names; subcategories are picked separately.
+  const cats = allCats.filter(c => !c.parent_id).map(c => c.name);
+  const subsOf = (catName: string) => {
+    const parent = allCats.find(c => !c.parent_id && c.name === catName);
+    return parent ? allCats.filter(c => c.parent_id === parent.id).map(c => c.name) : [];
+  };
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -56,7 +64,7 @@ export default function ProductsPage() {
       const res = await fetch('/api/admin/categories');
       const data = await res.json();
       if (data.data?.length) {
-        setCats(data.data.filter((c: any) => c.is_active).map((c: any) => c.name));
+        setAllCats(data.data.filter((c: any) => c.is_active).map((c: any) => ({ id: c.id, name: c.name, parent_id: c.parent_id ?? null })));
       }
     } catch {
       // keep fallback
@@ -73,7 +81,7 @@ export default function ProductsPage() {
 
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, detail: p.detail || '', description: p.description || '', price: p.price, originalPrice: p.originalPrice || '', discount: p.discount || '', media_urls: p.media_urls || [], video_url: (p as any).video_url || '', category: p.category || cats[0] || '', is_available: p.is_available, is_featured: p.is_featured, faqs: p.faqs || [], colors: (p as any).colors || [], sizes: normalizeSizes((p as any).sizes), display_order: p.display_order ?? 1, related_product_ids: Array.isArray(p.related_product_ids) ? p.related_product_ids : [] });
+    setForm({ name: p.name, detail: p.detail || '', description: p.description || '', price: p.price, originalPrice: p.originalPrice || '', discount: p.discount || '', media_urls: p.media_urls || [], video_url: (p as any).video_url || '', category: p.category || cats[0] || '', subcategory: p.subcategory || '', is_available: p.is_available, is_featured: p.is_featured, faqs: p.faqs || [], colors: (p as any).colors || [], sizes: normalizeSizes((p as any).sizes), display_order: p.display_order ?? 1, related_product_ids: Array.isArray(p.related_product_ids) ? p.related_product_ids : [] });
     setOpen(true);
   };
   const openNew = () => { setEditing(null); setForm({ ...empty, category: cats[0] || '', display_order: items.length + 1 }); setOpen(true); };
@@ -103,6 +111,7 @@ export default function ProductsPage() {
       media_urls: form.media_urls,
       video_url: form.video_url || null,
       category: form.category,
+      subcategory: form.subcategory || null,
       is_available: form.is_available,
       is_featured: form.is_featured,
       faqs: form.faqs,
@@ -232,7 +241,10 @@ export default function ProductsPage() {
                   </td>
                   <td data-label="Product"><div><p style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</p><p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{p.detail}</p></div></td>
                   <td data-label="Price"><div><p style={{ fontWeight: 600 }}>{p.price}</p><p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through' }}>{p.originalPrice}</p></div></td>
-                  <td data-label="Category"><span className="badge badge-active" style={{ fontSize: 10 }}>{p.category}</span></td>
+                  <td data-label="Category">
+                    <span className="badge badge-active" style={{ fontSize: 10 }}>{p.category}</span>
+                    {p.subcategory && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>↳ {p.subcategory}</p>}
+                  </td>
                   <td data-label="Tags">
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       {p.is_featured && <span style={{ background: 'rgba(245,166,35,0.15)', color: '#f5a623', border: '1px solid rgba(245,166,35,0.3)', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600 }}>Featured</span>}
@@ -281,13 +293,26 @@ export default function ProductsPage() {
 
             <div className="form-row">
               <div className="form-group"><label className="form-label">Category</label>
-                <select className="form-select" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                <select className="form-select" value={form.category} onChange={e => setForm({ ...form, category: e.target.value, subcategory: '' })}>
                   {cats.length === 0
                     ? <option value="">-- No categories found --</option>
                     : cats.map(c => <option key={c} value={c}>{c}</option>)
                   }
                 </select>
               </div>
+              {(subsOf(form.category).length > 0 || form.subcategory) && (
+                <div className="form-group"><label className="form-label">Subcategory</label>
+                  <select className="form-select" value={form.subcategory} onChange={e => setForm({ ...form, subcategory: e.target.value })}>
+                    <option value="">— None (main category only) —</option>
+                    {subsOf(form.category).map(s => <option key={s} value={s}>{s}</option>)}
+                    {form.subcategory && !subsOf(form.category).includes(form.subcategory) && (
+                      <option value={form.subcategory}>{form.subcategory} (inactive)</option>
+                    )}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div className="form-row">
               <div className="form-group"><label className="form-label">Display Order</label>
                 <input type="number" className="form-input" value={form.display_order} onChange={e => setForm({ ...form, display_order: Number(e.target.value) })} min={1} />
               </div>

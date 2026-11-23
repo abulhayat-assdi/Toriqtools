@@ -6,7 +6,7 @@ import ProductCard from "@/components/ui/ProductCard";
 import ViewItemListTracker from "@/components/analytics/ViewItemListTracker";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 
-type Category = { id: string; name: string; slug: string };
+type Category = { id: string; name: string; slug: string; parentId?: string | null };
 
 type Product = {
   id: string;
@@ -19,6 +19,7 @@ type Product = {
   reviews: string;
   imageUrl: string;
   category: string;
+  subcategory?: string;
   unavailable: boolean;
 };
 
@@ -37,6 +38,11 @@ function FilterPanel({
   onToggleCategoriesOpen,
   onToggleCategory,
 }: FilterPanelProps) {
+  // Main categories, each followed by its subcategories (indented).
+  const ordered = categories
+    .filter((c) => !c.parentId || !categories.some((p) => p.id === c.parentId))
+    .flatMap((c) => [c, ...categories.filter((s) => s.parentId === c.id)]);
+
   return (
     <div className="space-y-3">
       <div className="border border-[#e5e5e5] rounded-lg overflow-hidden">
@@ -53,13 +59,13 @@ function FilterPanel({
         </button>
         {categoriesOpen && (
           <div className="px-4 pb-4 pt-2 bg-white border-t border-[#f0f0f0] space-y-3">
-            {categories.map((cat) => (
+            {ordered.map((cat) => (
               <label
                 key={cat.id}
-                className="flex cursor-pointer items-center justify-between group"
+                className={`flex cursor-pointer items-center justify-between group ${cat.parentId ? "pl-4" : ""}`}
               >
                 <span
-                  className={`text-[14px] transition-colors ${
+                  className={`${cat.parentId ? "text-[13px]" : "text-[14px]"} transition-colors ${
                     activeCategories.includes(cat.slug)
                       ? "text-[#eb1c24] font-semibold"
                       : "text-[#555] group-hover:text-[#1a1a1a]"
@@ -119,7 +125,11 @@ export default function CollectionClient({
   const filteredProducts =
     activeCategories.length === 0
       ? initialProducts
-      : initialProducts.filter((p) => activeCategories.includes(p.category));
+      : initialProducts.filter(
+          (p) =>
+            activeCategories.includes(p.category) ||
+            (!!p.subcategory && activeCategories.includes(p.subcategory))
+        );
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === "price-asc") {

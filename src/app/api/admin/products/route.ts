@@ -31,14 +31,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       slug, name, detail, description, price, original_price, discount,
-      per_cup_price, packaging, media_urls, category, video_url, is_available,
+      per_cup_price, packaging, media_urls, category, subcategory, video_url, is_available,
       is_featured, is_gift, faqs, steeping, colors, sizes, display_order,
       related_product_ids,
     } = body;
     const product = await prisma.product.create({
       data: {
         slug, name, detail, description, price, original_price, discount,
-        per_cup_price, packaging, media_urls, category, video_url, is_available,
+        per_cup_price, packaging, media_urls, category, subcategory, video_url, is_available,
         is_featured, is_gift, faqs, steeping, colors, sizes, display_order,
         related_product_ids,
       },
