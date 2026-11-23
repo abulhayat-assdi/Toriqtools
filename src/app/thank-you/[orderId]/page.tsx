@@ -356,9 +356,9 @@ export default function ThankYouOrderPage({ params }: { params: Promise<{ orderI
               <div key={idx} className="border border-[#e8f5e9] rounded-xl overflow-hidden last:mb-0">
                 {/* ── Product row ── */}
                 <div className="flex gap-3 items-center p-3">
-                  <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#d1fae5] bg-[#f0fdf4] flex-shrink-0 flex items-center justify-center">
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#d1fae5] bg-white flex-shrink-0 flex items-center justify-center">
                     {item.image && item.image.trim() !== "" ? (
-                      <NextImage src={item.image} alt={item.name} fill className="object-cover" sizes="56px" />
+                      <NextImage src={item.image} alt={item.name} fill className="object-contain" sizes="56px" />
                     ) : (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-7 h-7 text-[#ccc]"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.5"/><path d="M3 9l4-4 4 4 4-4 4 4" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="14" r="2" strokeWidth="1.5"/></svg>
                     )}

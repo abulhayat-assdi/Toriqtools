@@ -53,14 +53,14 @@ export default function ComboSection() {
             {offers.map(offer => (
               <div key={offer.id} className="relative bg-[#252525] rounded-lg overflow-hidden group">
                 {/* Image / Video thumbnail */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-[#333]">
+                <div className="relative aspect-square overflow-hidden bg-white">
                   {offer.image_url ? (
                     <Image
                       src={offer.image_url}
                       alt={offer.title}
                       fill
                       sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-contain transition-transform duration-500 group-hover:scale-105"
                       unoptimized={offer.image_url?.startsWith("/uploads/")}
                     />
                   ) : (

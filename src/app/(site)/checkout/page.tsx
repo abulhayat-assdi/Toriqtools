@@ -563,9 +563,9 @@ function CheckoutContent() {
                       const hasDiscount = origPrice && origPrice > price;
                       return (
                         <div key={item.id} className="flex gap-3 p-3 border border-[#f0f0f0] rounded-lg">
-                          <div className="w-[60px] h-[60px] flex-shrink-0 bg-[#f8f5f0] rounded-lg overflow-hidden border border-[#eee]">
+                          <div className="w-[60px] h-[60px] flex-shrink-0 bg-white rounded-lg overflow-hidden border border-[#eee]">
                             {item.image ? (
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                              <img src={item.image} alt={item.name} className="w-full h-full object-contain" loading="lazy" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-300">
                                 <ShoppingCart size={20} />
@@ -629,9 +629,9 @@ function CheckoutContent() {
                           <tr key={item.id} className="border-b border-[#f5f5f5] hover:bg-gray-50 transition-colors">
                             <td className="px-4 py-4">{idx + 1}</td>
                             <td className="px-4 py-4">
-                              <div className="w-16 h-16 bg-[#f8f5f0] rounded-lg overflow-hidden border border-[#eee]">
+                              <div className="w-16 h-16 bg-white rounded-lg overflow-hidden border border-[#eee]">
                                 {item.image ? (
-                                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                  <img src={item.image} alt={item.name} className="w-full h-full object-contain" loading="lazy" decoding="async" />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-gray-300">
                                     <ShoppingCart size={24} />

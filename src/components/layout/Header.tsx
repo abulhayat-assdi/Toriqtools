@@ -379,8 +379,8 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
                           onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
                           className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f5f5f5] transition-colors group"
                         >
-                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#f5f5f5]">
-                            {p.media_urls?.[0] && <img src={p.media_urls[0]} alt={p.name} className="h-full w-full object-cover" loading="lazy" />}
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white border border-[#eee]">
+                            {p.media_urls?.[0] && <img src={p.media_urls[0]} alt={p.name} className="h-full w-full object-contain" loading="lazy" />}
                           </div>
                           <div>
                             <p className="text-[14px] font-semibold text-[#222] group-hover:text-[#eb1c24] transition-colors">{p.name}</p>
@@ -441,9 +441,9 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
                 <div className="space-y-4">
                   {cartItems.map(item => (
                     <div key={item.id} className="flex gap-3 pb-4 border-b border-[#f0f0f0]">
-                      <div className="h-20 w-20 shrink-0 overflow-hidden bg-[#f5f5f5]">
+                      <div className="h-20 w-20 shrink-0 overflow-hidden bg-white border border-[#eee]">
                         {item.image ? (
-                          <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                          <img src={item.image} alt={item.name} className="h-full w-full object-contain" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center"><ShoppingBag size={20} className="text-[#ccc]" /></div>
                         )}

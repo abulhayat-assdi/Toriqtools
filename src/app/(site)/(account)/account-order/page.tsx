@@ -116,7 +116,7 @@ export default function OrdersPage() {
                          <div className="flex items-center gap-3">
                            <div className="w-10 h-10 bg-white border border-[#e5e5e5] rounded flex items-center justify-center overflow-hidden">
                              {item.image_url ? (
-                               <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                               <img src={item.image_url} alt={item.product_name} className="w-full h-full object-contain" loading="lazy" decoding="async" />
                              ) : (
                                <Package size={20} className="text-[#ccc]" />
                              )}

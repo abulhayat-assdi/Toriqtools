@@ -103,14 +103,14 @@ export default function ProductCard({
     <article className="relative flex flex-col bg-white border border-[#ebebeb] rounded-lg overflow-hidden group hover:shadow-md transition-shadow duration-300">
       {/* Image area */}
       <Link href={`/products/${slug || id}`} onClick={handleSelectItem} className="block relative">
-        <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#f5f5f5]">
+        <div className="relative aspect-square w-full overflow-hidden bg-white">
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt={name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              className="object-contain transition-transform duration-500 group-hover:scale-105"
               unoptimized={imageUrl?.startsWith("/uploads/")}
               priority={priority}
               quality={80}
