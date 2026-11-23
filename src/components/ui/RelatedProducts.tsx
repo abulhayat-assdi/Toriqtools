@@ -14,7 +14,7 @@ function mapProduct(p: any) {
     imageUrl: p.media_urls?.[0] || "",
     category: p.category,
     unavailable: !p.is_available,
-    isNew: !p.discount && !p.original_price,
+    badges: p.badges,
   };
 }
 

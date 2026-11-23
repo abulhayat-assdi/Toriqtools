@@ -21,6 +21,7 @@ type Product = {
   category: string;
   subcategory?: string;
   unavailable: boolean;
+  badges?: unknown;
 };
 
 interface FilterPanelProps {
