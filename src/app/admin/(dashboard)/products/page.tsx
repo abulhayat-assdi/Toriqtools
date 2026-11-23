@@ -5,9 +5,11 @@ import { Plus, Pencil, Trash2, X, PlayCircle, Loader2 } from 'lucide-react';
 import MultiMediaUpload from '@/components/admin/MultiMediaUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import SizePriceEditor from '@/components/admin/SizePriceEditor';
+import { normalizeSizes, type SizeOption } from '@/lib/size-price';
 
 type FAQ = { q: string; a: string };
-type SizeItem = { size: string; available: boolean };
+type SizeItem = SizeOption;
 
 type Product = {
   id: string; slug?: string; name: string; detail: string; description: string; price: string; originalPrice: string;
@@ -17,8 +19,19 @@ type Product = {
   related_product_ids: string[];
 };
 
-const normalizeSizes = (raw: any[]): SizeItem[] =>
-  raw.map(s => typeof s === 'string' ? { size: s, available: true } : s);
+// Drop blank rows, duplicate sizes and empty prices before saving
+const cleanSizes = (sizes: SizeItem[]): SizeItem[] => {
+  const seen = new Set<string>();
+  const out: SizeItem[] = [];
+  for (const s of sizes) {
+    const size = s.size.trim();
+    if (!size || seen.has(size.toLowerCase())) continue;
+    seen.add(size.toLowerCase());
+    const price = (s.price ?? '').trim();
+    out.push({ size, available: s.available !== false, ...(price ? { price } : {}) });
+  }
+  return out;
+};
 
 const empty: Omit<Product, 'id' | 'slug'> = { name: '', detail: '', description: '', price: '', originalPrice: '', discount: '', media_urls: [], video_url: '', category: '', is_available: true, is_featured: false, faqs: [], colors: [], sizes: [], display_order: 1, related_product_ids: [] };
 
@@ -32,7 +45,6 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ ...empty });
   const [filter, setFilter] = useState('All');
-  const [sizeInput, setSizeInput] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerSelected, setPickerSelected] = useState<string[]>([]);
@@ -61,11 +73,10 @@ export default function ProductsPage() {
 
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, detail: p.detail || '', description: p.description || '', price: p.price, originalPrice: p.originalPrice || '', discount: p.discount || '', media_urls: p.media_urls || [], video_url: (p as any).video_url || '', category: p.category || cats[0] || '', is_available: p.is_available, is_featured: p.is_featured, faqs: p.faqs || [], colors: (p as any).colors || [], sizes: normalizeSizes((p as any).sizes || []), display_order: p.display_order ?? 1, related_product_ids: Array.isArray(p.related_product_ids) ? p.related_product_ids : [] });
-    setSizeInput('');
+    setForm({ name: p.name, detail: p.detail || '', description: p.description || '', price: p.price, originalPrice: p.originalPrice || '', discount: p.discount || '', media_urls: p.media_urls || [], video_url: (p as any).video_url || '', category: p.category || cats[0] || '', is_available: p.is_available, is_featured: p.is_featured, faqs: p.faqs || [], colors: (p as any).colors || [], sizes: normalizeSizes((p as any).sizes), display_order: p.display_order ?? 1, related_product_ids: Array.isArray(p.related_product_ids) ? p.related_product_ids : [] });
     setOpen(true);
   };
-  const openNew = () => { setEditing(null); setForm({ ...empty, category: cats[0] || '', display_order: items.length + 1 }); setSizeInput(''); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ ...empty, category: cats[0] || '', display_order: items.length + 1 }); setOpen(true); };
 
   const save = async () => {
     if (!form.name || !form.price || form.media_urls.length === 0) {
@@ -96,7 +107,7 @@ export default function ProductsPage() {
       is_featured: form.is_featured,
       faqs: form.faqs,
       colors: form.colors,
-      sizes: form.sizes,
+      sizes: cleanSizes(form.sizes),
       display_order: form.display_order,
       related_product_ids: form.related_product_ids,
     };
@@ -341,55 +352,13 @@ export default function ProductsPage() {
               />
             </div>
 
-            {/* Sizes */}
-            <div className="form-group" style={{ marginTop: 16 }}>
-              <label className="form-label">Sizes (comma দিয়ে লিখুন, Enter চাপুন)</label>
-              <input
-                className="form-input"
-                placeholder="S, M, L, XL, XXL"
-                value={sizeInput}
-                onChange={e => setSizeInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const newSizes = sizeInput.split(',').map(s => s.trim()).filter(Boolean);
-                    if (newSizes.length) {
-                      setForm({ ...form, sizes: [...form.sizes, ...newSizes.map(s => ({ size: s, available: true }))] });
-                      setSizeInput('');
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  const newSizes = sizeInput.split(',').map(s => s.trim()).filter(Boolean);
-                  if (newSizes.length) {
-                    setForm({ ...form, sizes: [...form.sizes, ...newSizes.map(s => ({ size: s, available: true }))] });
-                    setSizeInput('');
-                  }
-                }}
-              />
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {form.sizes.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', border: `1px solid ${s.available ? 'rgba(74,158,255,0.5)' : 'rgba(255,74,74,0.4)'}`, borderRadius: 4, fontSize: 12, background: s.available ? 'rgba(74,158,255,0.08)' : 'rgba(255,74,74,0.08)' }}>
-                    <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{s.size}</span>
-                    <button
-                      type="button"
-                      title={s.available ? 'Unavailable করুন' : 'Available করুন'}
-                      onClick={() => { const updated = [...form.sizes]; updated[i] = { ...updated[i], available: !updated[i].available }; setForm({ ...form, sizes: updated }); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: s.available ? '#4a9eff' : '#ff4a4a', fontSize: 10, padding: '0 2px', fontWeight: 700 }}
-                    >
-                      {s.available ? '✓ Available' : '✗ Unavailable'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { const updated = [...form.sizes]; updated.splice(i, 1); setForm({ ...form, sizes: updated }); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', padding: '0 2px', fontSize: 14, lineHeight: 1 }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Sizes & per-size prices */}
+            <SizePriceEditor
+              key={editing?.id ?? 'new'}
+              sizes={form.sizes}
+              basePrice={form.price}
+              onChange={sizes => setForm(f => ({ ...f, sizes }))}
+            />
 
             {/* Video URL */}
             <div className="form-group" style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.1)' }}>

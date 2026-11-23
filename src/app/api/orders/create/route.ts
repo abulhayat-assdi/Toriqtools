@@ -3,6 +3,8 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendPurchaseEvent } from '@/lib/meta-capi';
+import { parsePrice } from '@/lib/parse-price';
+import { normalizeSizes, priceForSize } from '@/lib/size-price';
 
 
 type LineItem = { productId: string; quantity: number; size?: string | null; color?: string | null };
@@ -167,9 +169,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Reject sizes the admin has marked as stock-out
-      const productSizes = Array.isArray(product.sizes)
-        ? (product.sizes as Array<{ size?: string; available?: boolean }>)
-        : [];
+      const productSizes = normalizeSizes(product.sizes);
       if (item.size) {
         const sizeEntry = productSizes.find((s) => s.size === item.size);
         if (sizeEntry && sizeEntry.available === false) {
@@ -180,7 +180,8 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const trustedPrice = parseFloat(String(product.price).replace(/[^0-9.]/g, '')) || 0;
+      // A size may carry its own price; otherwise the product's base price applies
+      const trustedPrice = parsePrice(priceForSize(String(product.price), productSizes, item.size)) || 0;
       subtotal += trustedPrice * item.quantity;
 
       const mediaUrls = product.media_urls as string[];

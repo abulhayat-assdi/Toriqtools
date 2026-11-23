@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { parsePrice } from "@/lib/parse-price";
 import { pushEcommerce, toItem, trackContactClick } from "@/lib/analytics";
 import { Minus, Plus } from "lucide-react";
+import { applySizePrice, formatTaka, type SizeOption } from "@/lib/size-price";
 
 type ProductInfo = {
   id: string;
@@ -29,7 +30,7 @@ export function ProductActionButtons({
   whatsappNumber?: string;
   phoneNumber?: string;
   colors?: string[];
-  sizes?: { size: string; available: boolean }[];
+  sizes?: SizeOption[];
   colorImageOffset?: number;
 }) {
   const router = useRouter();
@@ -53,7 +54,7 @@ export function ProductActionButtons({
     }
   };
 
-  const productData: ProductInfo = product ?? {
+  const baseProduct: ProductInfo = product ?? {
     id: "demo",
     name: "Demo Product",
     price: "৳1,450",
@@ -62,6 +63,13 @@ export function ProductActionButtons({
     originalPrice: "",
     discount: "",
   };
+
+  // Price, regular price and discount follow the selected size (a size may carry its own price)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the sizes list from the line data
+  const { availableSizes: _sizes, ...productData } = applySizePrice(
+    { ...baseProduct, availableSizes: sizes },
+    selectedSize
+  );
 
   const addToCart = (qty = quantity) => {
     const existing = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -73,7 +81,7 @@ export function ProductActionButtons({
       availableColors: colors.length > 0 ? colors : undefined,
     };
     if (idx > -1) {
-      existing[idx] = { ...existing[idx], ...cartMeta, quantity: (existing[idx].quantity || 1) + qty };
+      existing[idx] = { ...existing[idx], ...productData, ...cartMeta, quantity: (existing[idx].quantity || 1) + qty };
     } else {
       existing.push({ ...productData, ...cartMeta, quantity: qty });
     }
@@ -119,6 +127,19 @@ export function ProductActionButtons({
   const waHref = waNumber ? `https://wa.me/${waNumber}?text=${waMessage}` : `https://wa.me/?text=${waMessage}`;
 
   return (
+    <>
+    {/* Price — updates instantly when a size with its own price is selected */}
+    <div className="mt-1 flex flex-wrap items-center gap-2">
+      <span className="text-[18px] md:text-[32px] font-bold text-[#eb1c24]" aria-live="polite">
+        {formatTaka(productData.price)}
+      </span>
+      {productData.originalPrice && (
+        <span className="text-[16px] text-[#aaa] line-through">{formatTaka(productData.originalPrice)}</span>
+      )}
+      {productData.discount && (
+        <span className="bg-red-500 text-white px-2 py-0.5 text-[12px] font-bold rounded">{productData.discount}</span>
+      )}
+    </div>
     <div className="mt-2 space-y-2">
       {/* Color Selector */}
       {colors.length > 0 && (
@@ -297,5 +318,6 @@ export function ProductActionButtons({
         </div>
       </div>
     </div>
+    </>
   );
 }
