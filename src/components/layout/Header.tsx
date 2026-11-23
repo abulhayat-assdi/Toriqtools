@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Menu, Search, ShoppingBag, User, X, Trash2, ChevronDown } from "lucide-react";
@@ -29,7 +29,7 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
   const isCatActive = (c: { id: string; slug: string; name: string }) =>
     isActivePath(catHref(c)) || subsOf(c.id).some(s => isActivePath(catHref(s)));
   const navPill = (active: boolean) =>
-    `inline-flex h-9 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-4 text-[13.5px] leading-none tracking-[0.01em] transition-all duration-200 ${
+    `inline-flex h-8 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-3 text-[13px] leading-none transition-all duration-200 xl:h-9 xl:px-3.5 xl:text-[13.5px] ${
       active
         ? "border-white bg-white font-semibold text-[#eb1c24] shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
         : "border-white/30 bg-white/[0.08] font-medium text-white hover:border-white/70 hover:bg-white/20"
@@ -38,6 +38,59 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
     `px-4 py-3 text-[15px] rounded-lg transition-colors ${
       active ? "bg-white font-semibold text-[#eb1c24]" : "font-medium text-white/80 hover:text-white hover:bg-white/10"
     }`;
+  // Desktop nav: one flat list; overflow items collapse into a "More" dropdown so the bar never wraps.
+  const navItems = [
+    { key: "home", href: "/", label: "Home", active: isActivePath("/"), subs: [] as typeof subCategories },
+    ...navCategories.map(cat => ({ key: cat.id, href: catHref(cat), label: cat.name, active: isCatActive(cat), subs: subsOf(cat.id) })),
+    { key: "contact", href: "/pages/contact", label: "Contact", active: isActivePath("/pages/contact"), subs: [] as typeof subCategories },
+  ];
+  const navRef = useRef<HTMLElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(Infinity);
+  const navSignature = navItems.map(i => `${i.label}:${i.subs.length}:${i.active}`).join("|");
+  useEffect(() => {
+    const nav = navRef.current, measure = measureRef.current;
+    if (!nav || !measure) return;
+    const compute = () => {
+      const kids = Array.from(measure.children) as HTMLElement[];
+      if (kids.length < 2) return;
+      const gap = parseFloat(getComputedStyle(measure).columnGap) || 0;
+      const widths = kids.slice(0, -1).map(k => k.offsetWidth);
+      const moreW = kids[kids.length - 1].offsetWidth;
+      const avail = nav.clientWidth;
+      const total = widths.reduce((a, w) => a + w, 0) + gap * (widths.length - 1);
+      if (total <= avail) { setVisibleCount(widths.length); return; }
+      let used = moreW, n = 0;
+      for (const w of widths) {
+        if (used + gap + w > avail) break;
+        used += gap + w; n++;
+      }
+      setVisibleCount(Math.max(1, n));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(nav);
+    ro.observe(measure); // re-measure when the web font swaps in and pill widths change
+    document.fonts?.ready.then(compute).catch(() => {});
+    return () => ro.disconnect();
+  }, [navSignature]);
+  // Safety net: if the rendered row is still wider than the nav (e.g. web font swapped in
+  // after measuring), move one more item into "More" until it fits.
+  const fixOverflow = () => {
+    const nav = navRef.current, row = rowRef.current;
+    if (!nav || !row || nav.clientWidth === 0) return;
+    if (row.offsetWidth > nav.clientWidth) setVisibleCount(c => Math.max(1, Math.min(c, navItems.length) - 1));
+  };
+  useLayoutEffect(fixOverflow);
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const ro = new ResizeObserver(fixOverflow);
+    ro.observe(row);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Tracks whether the cart was opened via hash-state (icon click / cart:add)
   // vs via the /cart URL (BottomNav link). Lets the two close paths work independently.
@@ -230,7 +283,7 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
           scrolled ? "shadow-md" : ""
         } bg-[#eb1c24]`}
       >
-        <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-4 px-4 py-2 md:px-8 relative">
+        <div className="mx-auto flex h-[64px] max-w-[1440px] items-center justify-between gap-3 px-4 md:px-6 xl:px-8 relative">
 
           {/* Left: Hamburger (mobile only) + Logo (desktop only) */}
           <div className="flex shrink-0 items-center gap-3">
@@ -267,60 +320,104 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
             />
           </Link>
 
-          {/* Center: Desktop Nav Links — single-line pills, wrap neatly into rows if space runs out */}
-          <nav className="hidden md:flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2 lg:gap-2.5">
-            <Link href="/" className={navPill(isActivePath("/"))} aria-current={isActivePath("/") ? "page" : undefined}>
-              Home
-            </Link>
-            {navCategories.map(cat => {
-              const subs = subsOf(cat.id);
-              const active = isCatActive(cat);
-              return (
-                <div key={cat.id} className="relative group">
-                  <Link
-                    href={catHref(cat)}
-                    prefetch={true}
-                    className={navPill(active)}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    {cat.name}
-                    {subs.length > 0 && (
-                      <ChevronDown size={14} className="-mr-1 opacity-80 transition-transform duration-200 group-hover:rotate-180" />
-                    )}
-                  </Link>
-                  {subs.length > 0 && (
-                    <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full z-[90] pt-2">
-                      <div className="min-w-[200px] overflow-hidden rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-                        {subs.map(sub => {
-                          const subActive = isActivePath(catHref(sub));
-                          return (
-                            <Link
-                              key={sub.id}
-                              href={catHref(sub)}
-                              aria-current={subActive ? "page" : undefined}
-                              className={`block whitespace-nowrap rounded-lg px-3.5 py-2 text-[14px] transition-colors ${
-                                subActive
-                                  ? "bg-[#eb1c24]/10 font-semibold text-[#eb1c24]"
-                                  : "text-[#333] hover:bg-[#f5f5f5] hover:text-[#eb1c24]"
-                              }`}
-                            >
-                              {sub.name}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
+          {/* Center: Desktop Nav Links — always one line; items that don't fit go into "More" */}
+          <nav ref={navRef} className="hidden md:flex relative min-w-0 flex-1 flex-nowrap items-center justify-center gap-1.5 xl:gap-2">
+            {/* Invisible measuring row: same pills, used to compute how many fit */}
+            <div ref={measureRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 flex w-max flex-nowrap gap-1.5 xl:gap-2">
+              {navItems.map(item => (
+                <span key={item.key} className={navPill(item.active)}>
+                  {item.label}
+                  {item.subs.length > 0 && <ChevronDown size={14} className="-mr-1" />}
+                </span>
+              ))}
+              <span className={navPill(false)}>More <ChevronDown size={14} className="-mr-1" /></span>
+            </div>
+
+            <div ref={rowRef} className="flex w-max flex-nowrap items-center gap-1.5 xl:gap-2">
+            {navItems.slice(0, visibleCount).map(item => (
+              <div key={item.key} className="relative group shrink-0">
+                <Link
+                  href={item.href}
+                  prefetch={true}
+                  className={navPill(item.active)}
+                  aria-current={item.active ? "page" : undefined}
+                >
+                  {item.label}
+                  {item.subs.length > 0 && (
+                    <ChevronDown size={14} className="-mr-1 opacity-80 transition-transform duration-200 group-hover:rotate-180" />
                   )}
+                </Link>
+                {item.subs.length > 0 && (
+                  <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full z-[90] pt-2">
+                    <div className="min-w-[200px] overflow-hidden rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+                      {item.subs.map(sub => {
+                        const subActive = isActivePath(catHref(sub));
+                        return (
+                          <Link
+                            key={sub.id}
+                            href={catHref(sub)}
+                            aria-current={subActive ? "page" : undefined}
+                            className={`block whitespace-nowrap rounded-lg px-3.5 py-2 text-[14px] transition-colors ${
+                              subActive
+                                ? "bg-[#eb1c24]/10 font-semibold text-[#eb1c24]"
+                                : "text-[#333] hover:bg-[#f5f5f5] hover:text-[#eb1c24]"
+                            }`}
+                          >
+                            {sub.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {visibleCount < navItems.length && (() => {
+              const hidden = navItems.slice(visibleCount);
+              const moreActive = hidden.some(i => i.active);
+              return (
+                <div className="relative group shrink-0">
+                  <button type="button" className={navPill(moreActive)} aria-haspopup="true">
+                    More
+                    <ChevronDown size={14} className="-mr-1 opacity-80 transition-transform duration-200 group-hover:rotate-180" />
+                  </button>
+                  <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute right-0 top-full z-[90] pt-2">
+                    <div className="max-h-[70vh] min-w-[220px] overflow-y-auto rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+                      {hidden.map(item => (
+                        <div key={item.key}>
+                          <Link
+                            href={item.href}
+                            aria-current={item.active ? "page" : undefined}
+                            className={`block whitespace-nowrap rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors ${
+                              item.active ? "bg-[#eb1c24]/10 text-[#eb1c24]" : "text-[#222] hover:bg-[#f5f5f5] hover:text-[#eb1c24]"
+                            }`}
+                          >
+                            {item.label}
+                          </Link>
+                          {item.subs.map(sub => {
+                            const subActive = isActivePath(catHref(sub));
+                            return (
+                              <Link
+                                key={sub.id}
+                                href={catHref(sub)}
+                                aria-current={subActive ? "page" : undefined}
+                                className={`block whitespace-nowrap rounded-lg py-1.5 pl-7 pr-3.5 text-[13px] transition-colors ${
+                                  subActive ? "font-semibold text-[#eb1c24]" : "text-[#555] hover:bg-[#f5f5f5] hover:text-[#eb1c24]"
+                                }`}
+                              >
+                                {sub.name}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               );
-            })}
-            <Link
-              href="/pages/contact"
-              className={navPill(isActivePath("/pages/contact"))}
-              aria-current={isActivePath("/pages/contact") ? "page" : undefined}
-            >
-              Contact
-            </Link>
+            })()}
+            </div>
           </nav>
 
           {/* Right: Search, Account, Cart */}
