@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, Search, ShoppingBag, User, X, Trash2 } from "lucide-react";
+import { Menu, Search, ShoppingBag, User, X, Trash2, ChevronDown } from "lucide-react";
 import SiteConfirmModal from "@/components/ui/SiteConfirmModal";
 import { pushEcommerce, pushEvent, cartLineToItem } from "@/lib/analytics";
 
@@ -24,6 +24,20 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
   const [logoSrc, setLogoSrc] = useState(logoVersion ? `/logo.png?v=${logoVersion}` : "/logo.png");
   const router = useRouter();
   const pathname = usePathname();
+  // Active-route helpers: a category counts as active on its own page or any of its subcategories.
+  const isActivePath = (href: string) => href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const isCatActive = (c: { id: string; slug: string; name: string }) =>
+    isActivePath(catHref(c)) || subsOf(c.id).some(s => isActivePath(catHref(s)));
+  const navPill = (active: boolean) =>
+    `inline-flex h-9 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-4 text-[13.5px] leading-none tracking-[0.01em] transition-all duration-200 ${
+      active
+        ? "border-white bg-white font-semibold text-[#eb1c24] shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
+        : "border-white/30 bg-white/[0.08] font-medium text-white hover:border-white/70 hover:bg-white/20"
+    }`;
+  const mobileItem = (active: boolean) =>
+    `px-4 py-3 text-[15px] rounded-lg transition-colors ${
+      active ? "bg-white font-semibold text-[#eb1c24]" : "font-medium text-white/80 hover:text-white hover:bg-white/10"
+    }`;
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Tracks whether the cart was opened via hash-state (icon click / cart:add)
   // vs via the /cart URL (BottomNav link). Lets the two close paths work independently.
@@ -216,10 +230,10 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
           scrolled ? "shadow-md" : ""
         } bg-[#eb1c24]`}
       >
-        <div className="mx-auto flex h-[64px] max-w-[1440px] items-center justify-between px-4 md:px-8 relative">
+        <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-4 px-4 py-2 md:px-8 relative">
 
           {/* Left: Hamburger (mobile only) + Logo (desktop only) */}
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
               className="md:hidden text-white"
@@ -253,37 +267,47 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
             />
           </Link>
 
-          {/* Center: Desktop Nav Links */}
-          <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
-            <Link
-              href="/"
-              className="px-3 py-1.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
-            >
+          {/* Center: Desktop Nav Links — single-line pills, wrap neatly into rows if space runs out */}
+          <nav className="hidden md:flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2 lg:gap-2.5">
+            <Link href="/" className={navPill(isActivePath("/"))} aria-current={isActivePath("/") ? "page" : undefined}>
               Home
             </Link>
             {navCategories.map(cat => {
               const subs = subsOf(cat.id);
+              const active = isCatActive(cat);
               return (
                 <div key={cat.id} className="relative group">
                   <Link
                     href={catHref(cat)}
                     prefetch={true}
-                    className="block px-3 py-1.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    className={navPill(active)}
+                    aria-current={active ? "page" : undefined}
                   >
                     {cat.name}
+                    {subs.length > 0 && (
+                      <ChevronDown size={14} className="-mr-1 opacity-80 transition-transform duration-200 group-hover:rotate-180" />
+                    )}
                   </Link>
                   {subs.length > 0 && (
-                    <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-0 top-full z-[90] pt-1">
-                      <div className="min-w-[180px] rounded-md bg-white py-1.5 shadow-xl border border-[#eee]">
-                        {subs.map(sub => (
-                          <Link
-                            key={sub.id}
-                            href={catHref(sub)}
-                            className="block px-4 py-2 text-[14px] text-[#333] hover:bg-[#f5f5f5] hover:text-[#eb1c24] transition-colors"
-                          >
-                            {sub.name}
-                          </Link>
-                        ))}
+                    <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full z-[90] pt-2">
+                      <div className="min-w-[200px] overflow-hidden rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+                        {subs.map(sub => {
+                          const subActive = isActivePath(catHref(sub));
+                          return (
+                            <Link
+                              key={sub.id}
+                              href={catHref(sub)}
+                              aria-current={subActive ? "page" : undefined}
+                              className={`block whitespace-nowrap rounded-lg px-3.5 py-2 text-[14px] transition-colors ${
+                                subActive
+                                  ? "bg-[#eb1c24]/10 font-semibold text-[#eb1c24]"
+                                  : "text-[#333] hover:bg-[#f5f5f5] hover:text-[#eb1c24]"
+                              }`}
+                            >
+                              {sub.name}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -292,14 +316,15 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
             })}
             <Link
               href="/pages/contact"
-              className="px-3 py-1.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+              className={navPill(isActivePath("/pages/contact"))}
+              aria-current={isActivePath("/pages/contact") ? "page" : undefined}
             >
               Contact
             </Link>
           </nav>
 
           {/* Right: Search, Account, Cart */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex shrink-0 items-center gap-1 md:gap-2">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -343,7 +368,7 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
               <button onClick={() => setMenuOpen(false)} className="text-white/70 hover:text-white"><X size={22} /></button>
             </div>
             <div className="flex flex-col p-4 gap-1">
-              <Link href="/" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <Link href="/" onClick={() => setMenuOpen(false)} className={mobileItem(isActivePath("/"))}>
                 Home
               </Link>
               {navCategories.map(cat => (
@@ -352,7 +377,7 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
                     href={catHref(cat)}
                     prefetch={true}
                     onClick={() => setMenuOpen(false)}
-                    className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    className={mobileItem(isActivePath(catHref(cat)))}
                   >
                     {cat.name}
                   </Link>
@@ -361,17 +386,21 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
                       key={sub.id}
                       href={catHref(sub)}
                       onClick={() => setMenuOpen(false)}
-                      className="ml-4 pl-4 pr-4 py-2 text-[14px] text-white/65 hover:text-white hover:bg-white/10 rounded-lg border-l border-white/15 transition-colors"
+                      className={`ml-4 pl-4 pr-4 py-2 text-[14px] rounded-lg border-l transition-colors ${
+                        isActivePath(catHref(sub))
+                          ? "border-white bg-white/15 font-semibold text-white"
+                          : "border-white/15 text-white/65 hover:text-white hover:bg-white/10"
+                      }`}
                     >
                       {sub.name}
                     </Link>
                   ))}
                 </div>
               ))}
-              <Link href="/collections/all" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <Link href="/collections/all" onClick={() => setMenuOpen(false)} className={mobileItem(isActivePath("/collections/all"))}>
                 All Products
               </Link>
-              <Link href="/pages/contact" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <Link href="/pages/contact" onClick={() => setMenuOpen(false)} className={mobileItem(isActivePath("/pages/contact"))}>
                 Contact
               </Link>
               <div className="my-2 border-t border-white/10" />
