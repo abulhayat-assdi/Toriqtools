@@ -21,7 +21,6 @@ Item shape: `item_id, item_name, item_brand ("Toriq Tools"), item_category (disp
 | `purchase` | thank-you page, once per order | `event_id = order id`; `ecommerce.{currency,value,transaction_id,shipping,tax:0,coupon?,items[]}` | `src/app/thank-you/[orderId]/page.tsx` |
 | `search` | search overlay, 800 ms debounce, term length >= 2, once per term | `search_term, results_count` (not ecommerce) | `Header.tsx` |
 | `login` | after successful login | `method: "email"` | `src/app/(site)/(auth)/account-login/page.tsx` |
-| `sign_up` | after successful registration | `method: "email"` | `src/app/(site)/(auth)/account-register/page.tsx` |
 | `contact_click` | click on WhatsApp / `tel:` link | `contact_method ("whatsapp"/"phone"), link_location ("product_page"/"bottom_nav"/"footer"/"checkout"/"contact_page"), page_path`; product pages also `item_name, value` | `ProductActionButtons.tsx`, `BottomNav.tsx`, `Footer.tsx`, `checkout/page.tsx`, `pages/[slug]/page.tsx` (via `src/components/analytics/ContactLink.tsx`) |
 | `route_change` | every client-side navigation except first load and hash-only changes | `page_location, page_path, page_title` (title read after 100 ms) | `src/components/analytics/RouteChangeTracker.tsx` (mounted in `src/app/layout.tsx`) |
 

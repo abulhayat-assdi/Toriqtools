@@ -69,7 +69,7 @@ export default async function Footer() {
   // Non-shop, non-support, non-blog columns from footer config
   const otherColumns = config.columns.filter(col => {
     const h = col.heading?.toLowerCase();
-    return h !== "shop" && h !== "support" && h !== "blog" && h !== "learn";
+    return h !== "shop" && h !== "support" && h !== "blog" && h !== "learn" && h !== "my account";
   });
 
   return (
@@ -118,9 +118,8 @@ export default async function Footer() {
             </div>
           </div>
 
-          {/* Other admin-managed columns (Blog, My Account, etc.) */}
+          {/* Other admin-managed columns */}
           {otherColumns.slice(0, 1).map(col => {
-            const isAccountCol = col.heading?.toLowerCase() === "my account";
             return (
               <div key={col.id}>
                 <h3 className="text-[13px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
@@ -130,11 +129,7 @@ export default async function Footer() {
                   {col.links.filter((l: FooterLink) => l.label).map((link: FooterLink) => {
                     const slug = link.label.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
                     let href = `/pages/${slug}`;
-                    if (isAccountCol) {
-                      if (slug === "account" || slug === "orders") href = "/account-order";
-                      else if (slug === "addresses" || slug === "address") href = "/account-address";
-                      else href = `/account-${slug}`;
-                    } else if (slug === "home") href = "/";
+                    if (slug === "home") href = "/";
                     return (
                       <Link key={link.label} href={href} className="block text-[14px] text-gray-400 hover:text-white transition-colors">
                         {link.label}

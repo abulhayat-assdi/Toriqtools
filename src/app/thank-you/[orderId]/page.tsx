@@ -232,14 +232,6 @@ export default function ThankYouOrderPage({ params }: { params: Promise<{ orderI
     });
   }, [order]);
 
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    fetch('/api/auth/session').then(r => r.json()).then(data => {
-      setUser(data.user || null);
-    });
-  }, []);
-
   const fmt = (n: number) => `Tk ${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
   if (!order && !notFound) {
@@ -462,19 +454,6 @@ export default function ThankYouOrderPage({ params }: { params: Promise<{ orderI
             </div>
           )}
         </div>
-        </div>
-
-        {/* Track Order */}
-        <div className="bg-white rounded-2xl border border-[#d1fae5] shadow-sm p-6 text-center">
-          <p className="text-[14px] text-[#555] mb-3">
-            To track your order status and delivery updates, please log in or create an account.
-          </p>
-          <Link
-            href={user ? "/account-order" : "/account-register"}
-            className="inline-block bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg text-[13px] font-bold uppercase tracking-wider transition-colors"
-          >
-            {user ? "View My Orders" : "Sign Up to Track Order"}
-          </Link>
         </div>
       </main>
     </div>

@@ -8,7 +8,6 @@ const PRIVATE_PATHS = [
   '/checkout',
   '/thank-you/',
   '/account-login',
-  '/account-register',
   '/account-forgot-password',
   '/account-reset-password',
   '/account-order',

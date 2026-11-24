@@ -19,7 +19,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     const res = await fetch('/api/auth/session');
     const data = await res.json();
     if (!data.user) {
-      router.replace("/account-register");
+      router.replace("/account-login");
       return;
     }
     setUser(data.user);
@@ -28,7 +28,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push("/account-register");
+    router.push("/account-login");
   };
 
   if (loading) {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid2X2, ShoppingBag, User } from "lucide-react";
+import { Home, Grid2X2, ShoppingBag, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { trackContactClick } from "@/lib/analytics";
@@ -44,8 +44,7 @@ export default function BottomNav({ whatsappNumber }: { whatsappNumber?: string 
   const isMenuActive =
     !isHomeActive && pathname.startsWith("/collections");
   const isCartActive = pathname === "/cart";
-  const isAccountActive =
-    pathname.startsWith("/account");
+  const isContactActive = pathname === "/pages/contact";
 
   const itemBase =
     "relative flex flex-col items-center justify-center gap-0.5 py-2 transition-colors";
@@ -131,18 +130,18 @@ export default function BottomNav({ whatsappNumber }: { whatsappNumber?: string 
           <span className="text-[9px] font-medium leading-none">WhatsApp</span>
         </a>
 
-        {/* 5 — Account */}
+        {/* 5 — Contact */}
         <Link
-          href="/account-order"
+          href="/pages/contact"
           className={`${itemBase} ${
-            isAccountActive ? "text-white" : "text-white/55 hover:text-white/80"
+            isContactActive ? "text-white" : "text-white/55 hover:text-white/80"
           }`}
         >
-          {isAccountActive && (
+          {isContactActive && (
             <span className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
           )}
-          <User size={22} strokeWidth={isAccountActive ? 2 : 1.8} />
-          <span className="text-[9px] font-medium leading-none">Account</span>
+          <Phone size={22} strokeWidth={isContactActive ? 2 : 1.8} />
+          <span className="text-[9px] font-medium leading-none">Contact</span>
         </Link>
 
       </div>

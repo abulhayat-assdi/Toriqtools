@@ -3,7 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, Search, ShoppingBag, User, X, Trash2, ChevronDown } from "lucide-react";
+import { Menu, Search, ShoppingBag, X, Trash2, ChevronDown } from "lucide-react";
 import SiteConfirmModal from "@/components/ui/SiteConfirmModal";
 import { pushEcommerce, pushEvent, cartLineToItem } from "@/lib/analytics";
 
@@ -20,7 +20,6 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
   const subsOf = (id: string) => subCategories.filter(s => s.parent_id === id);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [user, setUser] = useState<any>(null);
   const [logoSrc, setLogoSrc] = useState(logoVersion ? `/logo.png?v=${logoVersion}` : "/logo.png");
   const router = useRouter();
   const pathname = usePathname();
@@ -96,10 +95,6 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
   // vs via the /cart URL (BottomNav link). Lets the two close paths work independently.
   const cartOpenedViaHash = useRef(false);
   const cartOpenRef = useRef(false);
-
-  useEffect(() => {
-    fetch("/api/auth/session").then(r => r.json()).then(d => setUser(d.user || null));
-  }, []);
 
   useEffect(() => {
     if (!logoVersion) {
@@ -430,13 +425,6 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
             >
               <Search size={20} />
             </button>
-            <Link
-              href={user ? "/account-order" : "/account-register"}
-              className="hidden md:flex p-2 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
-              aria-label="Account"
-            >
-              <User size={20} />
-            </Link>
             <button
               type="button"
               onClick={openCart}
@@ -499,14 +487,6 @@ export default function Header({ logoVersion }: { logoVersion?: number }) {
               </Link>
               <Link href="/pages/contact" onClick={() => setMenuOpen(false)} className={mobileItem(isActivePath("/pages/contact"))}>
                 Contact
-              </Link>
-              <div className="my-2 border-t border-white/10" />
-              <Link
-                href={user ? "/account-order" : "/account-register"}
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <User size={18} /> {user ? "My Account" : "Login / Register"}
               </Link>
             </div>
           </nav>
