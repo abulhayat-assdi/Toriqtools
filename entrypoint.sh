@@ -12,6 +12,11 @@ elif [ -f "/app/.uploads-seed/site-logo.png" ]; then
   cp "/app/.uploads-seed/site-logo.png" "/app/public/logo.png"
 fi
 
+# Restore browser icon (favicon) uploaded via admin panel
+if [ -f "/app/public/uploads/site-favicon.png" ]; then
+  cp "/app/public/uploads/site-favicon.png" "/app/public/favicon.png"
+fi
+
 # Wait for PostgreSQL to be ready
 echo "Waiting for database..."
 DB_HOST=$(echo "$DATABASE_URL" | sed 's|.*@||' | cut -d: -f1)

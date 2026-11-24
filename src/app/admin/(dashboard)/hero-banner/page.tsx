@@ -16,13 +16,6 @@ export default function HeroBannerPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Logo management
-  const [logoVersion, setLogoVersion] = useState(Date.now());
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [logoError, setLogoError] = useState('');
-  const [logoSaved, setLogoSaved] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Banner | null>(null);
   const [form, setForm] = useState({ image_url: '' });
@@ -37,32 +30,6 @@ export default function HeroBannerPage() {
   });
   const [heroTextSaving, setHeroTextSaving] = useState(false);
   const [heroTextSaved, setHeroTextSaved] = useState(false);
-
-  const handleLogoFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) { setLogoError('Please select an image file.'); return; }
-    if (file.size > 20 * 1024 * 1024) {
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      setLogoError(`ইমেজ সাইজ অনেক বড় (${sizeMB}MB)। সর্বোচ্চ ২০MB পর্যন্ত আপলোড করা যাবে। সাইজ কমিয়ে আবার চেষ্টা করুন।`);
-      return;
-    }
-    setLogoUploading(true);
-    setLogoError('');
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-      const res = await fetch('/api/admin/logo', { method: 'POST', body: fd });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || 'Upload failed');
-      setLogoVersion(Date.now());
-      setLogoSaved(true);
-      setTimeout(() => setLogoSaved(false), 2500);
-    } catch (err: any) {
-      setLogoError(err.message || 'Upload failed. Please try again.');
-    } finally {
-      setLogoUploading(false);
-      if (logoInputRef.current) logoInputRef.current.value = '';
-    }
-  };
 
   useEffect(() => {
     fetchData();
@@ -140,69 +107,38 @@ export default function HeroBannerPage() {
 
   return (
     <>
-      {/* ── Site Logo Manager ─────────────────────────────────── */}
+      {/* ── Site Banner: icon + logo ─────────────────────────── */}
       <div className="page-heading">
         <div>
-          <h1 className="page-title">Site Logo</h1>
-          <p className="page-subtitle">Upload or replace the logo shown in the header, admin sidebar, and favicon.</p>
+          <h1 className="page-title">Site Banner</h1>
+          <p className="page-subtitle">সাইট আইকন, লোগো, হিরো ব্যানার এবং ব্যানার টেক্সট — সব এখান থেকে পরিবর্তন করুন।</p>
         </div>
-        <button
-          className="btn-primary-admin"
-          onClick={() => logoInputRef.current?.click()}
-          disabled={logoUploading}
-          style={{ background: logoSaved ? '#3ecf8e' : undefined, display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          {logoUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-          {logoUploading ? 'Uploading…' : logoSaved ? '✓ Logo Updated!' : 'Upload New Logo'}
-        </button>
       </div>
 
-      <div className="section-card" style={{ marginBottom: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, flexWrap: 'wrap' }}>
-          <div>
-            <p className="form-label" style={{ marginBottom: 8 }}>Current Logo</p>
-            <div
-              style={{ width: 260, height: 100, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handleLogoFile(f); }}
-              onDragOver={e => e.preventDefault()}
-            >
-              <img
-                key={logoVersion}
-                src={`/logo.png?v=${logoVersion}`}
-                alt="Current logo"
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            className="btn-ghost"
-            style={{ fontSize: 12, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
-            onClick={() => logoInputRef.current?.click()}
-            disabled={logoUploading}
-          >
-            {logoUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            {logoUploading ? 'Uploading…' : 'Choose File'}
-          </button>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>or drag & drop an image onto the preview — PNG, SVG, WEBP, max 20 MB</span>
-        </div>
-        {logoError && <p style={{ fontSize: 12, color: '#ff6b6b', marginTop: 8 }}>{logoError}</p>}
-        {logoSaved && <p style={{ fontSize: 12, color: '#3ecf8e', marginTop: 8 }}>✓ Logo updated successfully! Reload the page to see it in the sidebar and header.</p>}
-
-        <input
-          ref={logoInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoFile(f); }}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 40 }}>
+        <SiteAssetUploader
+          title="Site Icon (Browser Icon)"
+          description="ব্রাউজার ট্যাবে যে ছোট আইকন দেখায়। স্কয়ার ইমেজ দিন (যেমন 512×512 PNG)।"
+          endpoint="/api/admin/favicon"
+          previewSrc="/favicon.png"
+          fallbackSrc="/logo.png"
+          previewBox={{ width: 96, height: 96 }}
+          maxMB={5}
+          successText="✓ Icon updated! ব্রাউজার ট্যাবে দেখতে পেজ রিলোড করুন।"
+        />
+        <SiteAssetUploader
+          title="Site Logo"
+          description="হেডার, ফুটার, অ্যাডমিন সাইডবার ও কুরিয়ার লেবেলে দেখানো লোগো।"
+          endpoint="/api/admin/logo"
+          previewSrc="/logo.png"
+          previewBox={{ width: 260, height: 96 }}
+          maxMB={20}
+          successText="✓ Logo updated! সাইডবার ও হেডারে দেখতে পেজ রিলোড করুন।"
         />
       </div>
 
       {/* ── Hero Text ───────────────────────────────────────── */}
-      <div className="page-heading" style={{ marginTop: 40 }}>
+      <div className="page-heading">
         <div>
           <h2 className="page-title" style={{ fontSize: 20 }}>Hero Banner Text</h2>
           <p className="page-subtitle">Banner-এর উপরে দেখানো text configure করুন।</p>
@@ -242,7 +178,7 @@ export default function HeroBannerPage() {
       {/* ── Hero Banner ──────────────────────────────────────── */}
       <div className="page-heading">
         <div>
-          <h1 className="page-title">Hero Banner</h1>
+          <h2 className="page-title" style={{ fontSize: 20 }}>Hero Banner</h2>
           <p className="page-subtitle">Manage the homepage hero banner image.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -298,5 +234,111 @@ export default function HeroBannerPage() {
         </div>
       )}
     </>
+  );
+}
+
+function SiteAssetUploader({
+  title,
+  description,
+  endpoint,
+  previewSrc,
+  fallbackSrc,
+  previewBox,
+  maxMB,
+  successText,
+}: {
+  title: string;
+  description: string;
+  endpoint: string;
+  previewSrc: string;
+  fallbackSrc?: string;
+  previewBox: { width: number; height: number };
+  maxMB: number;
+  successText: string;
+}) {
+  const [version, setVersion] = useState(() => Date.now());
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return; }
+    if (file.size > maxMB * 1024 * 1024) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      setError(`ইমেজ সাইজ অনেক বড় (${sizeMB}MB)। সর্বোচ্চ ${maxMB}MB পর্যন্ত আপলোড করা যাবে।`);
+      return;
+    }
+    setUploading(true);
+    setError('');
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch(endpoint, { method: 'POST', body: fd });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Upload failed');
+      setUseFallback(false);
+      setVersion(Date.now());
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const src = useFallback && fallbackSrc ? fallbackSrc : `${previewSrc}?v=${version}`;
+
+  return (
+    <div className="section-card" style={{ margin: 0 }}>
+      <p className="form-label" style={{ fontSize: 14, marginBottom: 4 }}>{title}</p>
+      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 14 }}>{description}</p>
+
+      <div
+        style={{ width: previewBox.width, height: previewBox.height, maxWidth: '100%', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10, cursor: 'pointer' }}
+        onClick={() => inputRef.current?.click()}
+        onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+        onDragOver={e => e.preventDefault()}
+        title="Click or drop an image"
+      >
+        <img
+          key={src}
+          src={src}
+          alt={title}
+          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          onError={e => {
+            if (fallbackSrc && !useFallback) setUseFallback(true);
+            else (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      </div>
+      {useFallback && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>আলাদা আইকন আপলোড করা হয়নি — এখন লোগোটাই আইকন হিসেবে ব্যবহার হচ্ছে।</p>}
+
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <button
+          className="btn-primary-admin"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          style={{ background: saved ? '#3ecf8e' : undefined, display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          {uploading ? 'Uploading…' : saved ? '✓ Updated!' : 'Upload New'}
+        </button>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>PNG, SVG, WEBP · max {maxMB} MB</span>
+      </div>
+      {error && <p style={{ fontSize: 12, color: '#ff6b6b', marginTop: 8 }}>{error}</p>}
+      {saved && <p style={{ fontSize: 12, color: '#3ecf8e', marginTop: 8 }}>{successText}</p>}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+    </div>
   );
 }

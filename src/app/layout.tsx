@@ -21,6 +21,19 @@ async function getLogoVersion(): Promise<number> {
   }
 }
 
+/** Version of the separately uploaded browser icon, or null if none uploaded (falls back to the logo). */
+async function getFaviconVersion(): Promise<number | null> {
+  try {
+    const content = await readFile(
+      join(process.cwd(), "public", "uploads", "favicon-version.json"),
+      "utf8"
+    );
+    return JSON.parse(content).v ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   let data = null;
   try {
@@ -34,6 +47,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const logoVersion = await getLogoVersion();
   const logoUrl = `/logo.png?v=${logoVersion}`;
+  const faviconVersion = await getFaviconVersion();
+  const iconUrl = faviconVersion ? `/favicon.png?v=${faviconVersion}` : logoUrl;
 
   const siteName = data?.site_name || "Toriq Tools";
   const tagline = data?.site_tagline || "Best Quality Tools in Bangladesh";
@@ -48,7 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
       default: `${siteName} | ${tagline}`,
     },
     description,
-    icons: { icon: logoUrl, apple: logoUrl },
+    icons: { icon: iconUrl, apple: iconUrl },
     openGraph: {
       title: `${siteName} | ${tagline}`,
       description,

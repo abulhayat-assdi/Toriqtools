@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ShoppingCart } from "lucide-react";
 import { pushEcommerce, toItem, normalizeCategory } from "@/lib/analytics";
 import { resolveBadges, discountText } from "@/lib/product-badges";
 
@@ -190,12 +191,13 @@ export default function ProductCard({
           type="button"
           onClick={handleAddToCart}
           disabled={unavailable}
-          className={`mt-auto w-full flex items-center justify-center py-2.5 text-[13px] md:text-[14px] font-bold border-2 rounded-sm transition-all duration-200 ${
+          className={`mt-auto w-full flex items-center justify-center gap-2 py-3 md:py-3.5 text-[15px] md:text-[17px] font-bold rounded-xl transition-all duration-200 ${
             unavailable
-              ? "border-[#ccc] text-[#ccc] cursor-not-allowed"
-              : "border-[#eb1c24] text-[#eb1c24] hover:bg-[#eb1c24] hover:text-white active:scale-[0.98]"
+              ? "bg-[#e5e5e5] text-[#999] cursor-not-allowed"
+              : "bg-[#eb1c24] text-white shadow-[0_6px_16px_-4px_rgba(235,28,36,0.55)] hover:bg-[#c4141b] hover:shadow-[0_8px_20px_-4px_rgba(196,20,27,0.6)] active:scale-[0.98]"
           }`}
         >
+          {!unavailable && <ShoppingCart className="w-[18px] h-[18px] md:w-5 md:h-5 fill-current" strokeWidth={2.2} aria-hidden />}
           {unavailable ? "Unavailable" : "অর্ডার করুন"}
         </button>
       </div>

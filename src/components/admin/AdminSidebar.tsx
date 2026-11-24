@@ -25,7 +25,7 @@ const menuItems = [
   { label: 'Orders', href: '/admin/orders', icon: Package },
   { label: 'Products', href: '/admin/products', icon: Package },
   { label: 'Categories', href: '/admin/categories', icon: Grid2X2 },
-  { label: 'Hero Banner', href: '/admin/hero-banner', icon: Image },
+  { label: 'Site Banner', href: '/admin/hero-banner', icon: Image },
   { label: 'Combo Offers', href: '/admin/combo-offers', icon: Layers },
   { label: 'Testimonials', href: '/admin/testimonials', icon: Star },
   { label: 'Reviews', href: '/admin/reviews', icon: MessageSquare },

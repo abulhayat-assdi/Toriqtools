@@ -5,7 +5,7 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 const sections = [
-  { label: 'Hero Banner', href: '/admin/hero-banner', icon: Image, desc: 'Edit banner image, headline & CTA' },
+  { label: 'Site Banner', href: '/admin/hero-banner', icon: Image, desc: 'Site icon, logo, hero banner & text' },
   { label: 'Categories', href: '/admin/categories', icon: Grid2X2, desc: 'Manage the 4 shop categories' },
   { label: 'Products', href: '/admin/products', icon: Package, desc: 'Bestsellers & gift products' },
   { label: 'Testimonials', href: '/admin/testimonials', icon: Star, desc: 'Celebrity cards & customer reviews' },
