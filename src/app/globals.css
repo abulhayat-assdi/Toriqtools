@@ -187,3 +187,34 @@ button {
   h1, h2, h3, h4 { line-height: 1.25; }
   p { line-height: 1.45; }
 }
+
+/* ── Product card order button: heavy Bangla text + periodic shine ── */
+.order-btn {
+  font-family: "Anek Bangla", "Hind Siliguri", "Poppins", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.order-btn--active {
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+.order-btn--active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  animation: order-btn-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes order-btn-shine {
+  0%, 60% { left: -60%; }
+  100% { left: 130%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .order-btn--active::after { animation: none; display: none; }
+}

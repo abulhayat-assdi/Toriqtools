@@ -245,14 +245,14 @@ export default function ProductCard({
           type="button"
           onClick={handleAddToCart}
           disabled={unavailable}
-          className={`mt-auto w-full flex items-center justify-center gap-2 py-3 md:py-3.5 text-[15px] md:text-[17px] font-bold rounded-xl transition-all duration-200 ${
+          className={`order-btn mt-auto w-full flex items-center justify-center gap-2 py-3 md:py-3.5 text-[17px] md:text-[20px] leading-none rounded-xl transition-all duration-200 ${
             unavailable
-              ? "bg-[#e5e5e5] text-[#999] cursor-not-allowed"
-              : "bg-[#eb1c24] text-white shadow-[0_6px_16px_-4px_rgba(235,28,36,0.55)] hover:bg-[#c4141b] hover:shadow-[0_8px_20px_-4px_rgba(196,20,27,0.6)] active:scale-[0.98]"
+              ? "bg-[#e5e5e5] text-[#999] cursor-not-allowed font-bold"
+              : "order-btn--active text-white bg-gradient-to-b from-[#f5333a] to-[#d0121a] ring-1 ring-inset ring-white/20 shadow-[0_8px_18px_-4px_rgba(235,28,36,0.6)] hover:from-[#e0262d] hover:to-[#b30f16] hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-6px_rgba(196,20,27,0.7)] active:translate-y-0 active:scale-[0.98]"
           }`}
         >
-          {!unavailable && <ShoppingCart className="w-[18px] h-[18px] md:w-5 md:h-5 fill-current" strokeWidth={2.2} aria-hidden />}
-          {unavailable ? "Unavailable" : "অর্ডার করুন"}
+          {!unavailable && <ShoppingCart className="w-5 h-5 md:w-[22px] md:h-[22px] fill-current shrink-0" strokeWidth={2.4} aria-hidden />}
+          <span className="relative">{unavailable ? "Unavailable" : "অর্ডার করুন"}</span>
         </button>
       </div>
     </article>
