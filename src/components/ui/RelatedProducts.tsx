@@ -1,13 +1,16 @@
 import ProductCard from "@/components/ui/ProductCard";
+import { resolveProductPricing } from "@/lib/size-price";
 import ViewItemListTracker from "@/components/analytics/ViewItemListTracker";
 
 function mapProduct(p: any) {
+  const pricing = resolveProductPricing(p.price, p.sizes);
   return {
     id: p.id,
     slug: p.slug,
     name: p.name,
     detail: p.detail || "",
-    price: p.price,
+    price: pricing.price,
+    sizes: pricing.sizes,
     originalPrice: p.original_price || "",
     discount: p.discount || "",
     reviews: p._count?.reviews ? `${p._count.reviews}` : "0",

@@ -11,7 +11,7 @@ import { ProductViewTracker } from "@/components/ui/ProductViewTracker";
 import RelatedProducts from "@/components/ui/RelatedProducts";
 import { resolveBadges, discountText } from "@/lib/product-badges";
 import { parsePrice } from "@/lib/parse-price";
-import { normalizeSizes } from "@/lib/size-price";
+import { resolveProductPricing } from "@/lib/size-price";
 import { SITE_URL as BASE } from "@/lib/constants";
 import sanitizeHtml from "sanitize-html";
 
@@ -160,6 +160,9 @@ export default async function SingleProductPage({
       ? (product.media_urls as string[])[0]
       : null;
 
+  // A list-style price ("500,750,800") is spread over the sizes; the first size is the default.
+  const pricing = resolveProductPricing(product.price, product.sizes);
+
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -172,7 +175,7 @@ export default async function SingleProductPage({
     offers: {
       "@type": "Offer",
       priceCurrency: "BDT",
-      price: parsePrice(product.price),
+      price: parsePrice(pricing.price),
       availability: product.is_available
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
@@ -202,7 +205,7 @@ export default async function SingleProductPage({
     ],
   };
 
-  const numericPrice = parsePrice(product.price);
+  const numericPrice = parsePrice(pricing.price);
 
   return (
     <article className="bg-white">
@@ -240,7 +243,7 @@ export default async function SingleProductPage({
             <div className="flex flex-col md:col-start-2 md:row-start-1">
               {(() => {
                 const highlight = resolveBadges(product?.badges);
-                const off = discountText(product?.price, product?.original_price, product?.discount);
+                const off = discountText(pricing.price, product?.original_price, product?.discount);
                 if (!highlight.length && !off) return null;
                 return (
                   <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -266,7 +269,7 @@ export default async function SingleProductPage({
                 product={{
                   id: product?.id || "demo-id",
                   name: product?.name || "Unknown Product",
-                  price: product?.price || "",
+                  price: pricing.price,
                   image: product?.media_urls?.[0] || "",
                   detail: product?.detail || "",
                   originalPrice: product?.original_price || "",
@@ -276,7 +279,7 @@ export default async function SingleProductPage({
                 whatsappNumber={siteSettings.whatsapp_number ?? undefined}
                 phoneNumber={siteSettings.phone_number ?? undefined}
                 colors={Array.isArray(product?.colors) ? (product.colors as string[]) : []}
-                sizes={normalizeSizes(product?.sizes)}
+                sizes={pricing.sizes}
                 colorImageOffset={colorImageOffset}
               />
 

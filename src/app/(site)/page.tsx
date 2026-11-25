@@ -27,7 +27,7 @@ const getHomeData = unstable_cache(
         select: {
           id: true, slug: true, name: true, detail: true, price: true,
           original_price: true, discount: true, media_urls: true,
-          category: true, is_available: true, is_featured: true, badges: true,
+          category: true, is_available: true, is_featured: true, badges: true, sizes: true,
         },
       }),
     ]);

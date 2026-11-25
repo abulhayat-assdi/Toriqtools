@@ -73,3 +73,38 @@ export function applySizePrice<T extends Record<string, any>>(item: T, size: str
     discount: overridden ? "" : baseDiscount,
   };
 }
+
+/** "1,050" / "12,500.00" style — commas used only as thousands separators. */
+const THOUSANDS_RE = /^\s*(?:৳|Tk\.?)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*$/i;
+
+/**
+ * Splits a base price the admin typed as a list of per-size prices
+ * ("500,750,800,1050", "500 / 750", "500|750") into its parts.
+ * Returns null for a normal single price, including "1,050".
+ */
+export function splitPriceList(price: string | null | undefined): string[] | null {
+  if (!price || THOUSANDS_RE.test(price)) return null;
+  const parts = price.split(/[,/|]/).map((p) => p.trim()).filter((p) => parsePrice(p) > 0);
+  return parts.length > 1 ? parts : null;
+}
+
+/**
+ * Resolves a product's pricing for display and ordering:
+ * - a list-style base price is spread over the sizes in order (sizes that
+ *   already have their own price keep it);
+ * - the default price is the first available size's price (the first size
+ *   the admin added), falling back to the first list value / base price.
+ */
+export function resolveProductPricing(
+  rawPrice: string | null | undefined,
+  rawSizes: unknown
+): { price: string; sizes: SizeOption[] } {
+  const base = String(rawPrice ?? "");
+  const list = splitPriceList(base);
+  const sizes = normalizeSizes(rawSizes).map((s, i) =>
+    s.price || !list ? s : { ...s, price: list[Math.min(i, list.length - 1)] }
+  );
+  const defaultSize = sizes.find((s) => s.available) ?? sizes[0];
+  const price = defaultSize?.price || (list ? list[0] : base);
+  return { price, sizes };
+}

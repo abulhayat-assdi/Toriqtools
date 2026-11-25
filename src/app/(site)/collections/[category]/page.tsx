@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import CollectionClient from "@/components/ui/CollectionClient";
 import { SITE_URL as BASE } from "@/lib/constants";
+import { resolveProductPricing } from "@/lib/size-price";
 
 // Re-render at most once per hour; revalidatePath overrides immediately
 export const revalidate = 3600;
@@ -27,6 +28,7 @@ const fetchCollectionData = unstable_cache(
         name: true,
         detail: true,
         price: true,
+        sizes: true,
         original_price: true,
         discount: true,
         media_urls: true,
@@ -109,7 +111,7 @@ export default async function CollectionPage({ params }: PageProps) {
   let productsData: {
     id: string; slug: string; name: string; detail: string | null;
     price: string; original_price: string | null; discount: string | null;
-    media_urls: unknown; category: string; subcategory: string | null; is_available: boolean; badges: unknown;
+    media_urls: unknown; category: string; subcategory: string | null; is_available: boolean; badges: unknown; sizes: unknown;
   }[] = [];
 
   try {
@@ -154,7 +156,7 @@ export default async function CollectionPage({ params }: PageProps) {
       slug: p.slug,
       name: p.name,
       detail: p.detail || "",
-      price: p.price,
+      ...resolveProductPricing(p.price, p.sizes),
       originalPrice: p.original_price || undefined,
       discount: p.discount || undefined,
       reviews: "",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { SizeOption } from "@/lib/size-price";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ui/ProductCard";
 import ViewItemListTracker from "@/components/analytics/ViewItemListTracker";
@@ -22,6 +23,7 @@ type Product = {
   subcategory?: string;
   unavailable: boolean;
   badges?: unknown;
+  sizes?: SizeOption[];
 };
 
 interface FilterPanelProps {

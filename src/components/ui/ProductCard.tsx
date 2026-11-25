@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import { pushEcommerce, toItem, normalizeCategory } from "@/lib/analytics";
 import { resolveBadges, discountText } from "@/lib/product-badges";
+import { applySizePrice, type SizeOption } from "@/lib/size-price";
 
 export interface ProductCardProps {
   id: string;
@@ -29,6 +31,8 @@ export interface ProductCardProps {
   /** Highlight badge keys ticked in admin (hot, new, best_seller, ...) */
   badges?: unknown;
   priority?: boolean;
+  /** Size options; the first available one is selected by default */
+  sizes?: SizeOption[];
 }
 
 export default function ProductCard({
@@ -36,9 +40,9 @@ export default function ProductCard({
   slug,
   name,
   detail,
-  price,
-  originalPrice,
-  discount,
+  price: basePrice,
+  originalPrice: baseOriginalPrice,
+  discount: baseDiscount,
   reviews,
   imageUrl,
   category,
@@ -49,8 +53,21 @@ export default function ProductCard({
   unavailable,
   badges,
   priority = false,
+  sizes = [],
 }: ProductCardProps) {
   const router = useRouter();
+  const [selectedSize, setSelectedSize] = useState<string | null>(
+    sizes.find((s) => s.available)?.size ?? null
+  );
+
+  // Price / regular price / discount follow the selected size (a size may carry its own price)
+  const sized = applySizePrice(
+    { price: basePrice, originalPrice: baseOriginalPrice ?? "", discount: baseDiscount ?? "", availableSizes: sizes },
+    selectedSize
+  );
+  const price = sized.price;
+  const originalPrice = sized.originalPrice || undefined;
+  const discount = sized.discount || undefined;
 
   const reviewCount = parseInt(reviews) || 0;
   const displayPrice = price?.includes("৳")
@@ -84,11 +101,20 @@ export default function ProductCard({
     e.stopPropagation();
 
     const existing = JSON.parse(localStorage.getItem("cart") || "[]");
+    const sizeMeta = sizes.length > 0
+      ? {
+          selectedSize: selectedSize || undefined,
+          availableSizes: sizes,
+          basePrice,
+          baseOriginalPrice: baseOriginalPrice ?? "",
+          baseDiscount: baseDiscount ?? "",
+        }
+      : {};
     const idx = existing.findIndex((i: any) => i.id === id);
     if (idx > -1) {
-      existing[idx] = { ...existing[idx], quantity: (existing[idx].quantity || 1) + 1 };
+      existing[idx] = { ...existing[idx], price, originalPrice, discount, ...sizeMeta, quantity: (existing[idx].quantity || 1) + 1 };
     } else {
-      existing.push({ id, name, price, image: imageUrl, detail, originalPrice, discount, category: categoryLabel, quantity: 1 });
+      existing.push({ id, name, price, image: imageUrl, detail, originalPrice, discount, category: categoryLabel, ...sizeMeta, quantity: 1 });
     }
     localStorage.setItem("cart", JSON.stringify(existing));
 
@@ -98,7 +124,7 @@ export default function ProductCard({
     window.dispatchEvent(new CustomEvent("cart:add"));
 
     pushEcommerce("add_to_cart", {
-      items: [toItem({ id, name, price, category: categoryLabel })],
+      items: [toItem({ id, name, price, category: categoryLabel, size: selectedSize || undefined })],
     });
 
     router.push("/checkout");
@@ -169,6 +195,34 @@ export default function ProductCard({
             {displayPrice}
           </span>
         </div>
+
+        {/* Sizes — first one selected by default; picking one updates the price */}
+        {sizes.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3" role="radiogroup" aria-label="সাইজ">
+            {sizes.map(({ size, available }) => {
+              const active = size === selectedSize;
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  disabled={!available}
+                  onClick={() => setSelectedSize(size)}
+                  className={`min-w-[36px] px-2 py-1 text-[11px] md:text-[12px] font-semibold rounded-md border leading-none transition-colors ${
+                    !available
+                      ? "border-[#eee] text-[#bbb] line-through cursor-not-allowed"
+                      : active
+                      ? "border-[#eb1c24] bg-[#eb1c24] text-white"
+                      : "border-[#ddd] text-[#333] hover:border-[#eb1c24] hover:text-[#eb1c24]"
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Star rating — only when reviews exist */}
         {reviewCount > 0 && (

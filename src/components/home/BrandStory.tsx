@@ -8,6 +8,7 @@ import { Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import Link from 'next/link';
+import { resolveProductPricing } from '@/lib/size-price';
 
 
 
@@ -25,11 +26,11 @@ export default function BrandStory({
   const [reviews] = useState<any[]>(initialTestimonials.filter((t: any) => t.type === 'review'));
   const [giftProducts] = useState<any[]>(() => {
     return initialGifts.map((p: any) => ({
+      ...resolveProductPricing(p.price, p.sizes),
       id: p.id,
       slug: p.slug,
       name: p.name,
       detail: p.detail,
-      price: p.price,
       originalPrice: p.original_price,
       discount: p.discount,
       reviews: p._count?.reviews ? `${p._count.reviews} reviews` : undefined,
