@@ -1149,9 +1149,9 @@ export default function OrdersPage() {
                         <p style={{ fontSize: 13, color: '#ff4a4a' }}>রিপোর্ট লোড করতে ব্যর্থ হয়েছে: {ratioData.error}</p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                          {/* Steadfast Stats */}
+                          {/* BD Courier Stats */}
                           <div>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>স্টেডফাস্ট কুরিয়ার রিপোর্ট (গ্লোবাল ডেটা)</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>BD Courier রিপোর্ট (সব কুরিয়ার)</span>
                             {ratioData.steadfast ? (
                               ratioData.steadfast.error ? (
                                 <div style={{
@@ -1266,24 +1266,33 @@ export default function OrdersPage() {
                                           const reportPhone = typeof report === 'object'
                                             ? (report.phone || report.number || '')
                                             : '';
+                                          const courierName = typeof report === 'object' ? (report.courierName || report.courier_name || '') : '';
+                                          const courierLogo = typeof report === 'object' && typeof report.courierLogo === 'string' ? report.courierLogo : '';
+                                          const reportDateLabel = formatFetchedAt(reportDate) || reportDate;
 
                                           if (!commentText) return null;
 
                                           return (
-                                            <div key={idx} style={{ background: 'rgba(255,74,74,0.04)', border: '1px solid rgba(255,74,74,0.15)', borderRadius: 8, padding: '10px 12px' }}>
-                                              {(reportPhone || reporterName) && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                            <div key={report?.id ?? idx} style={{ background: 'rgba(255,74,74,0.04)', border: '1px solid rgba(255,74,74,0.15)', borderRadius: 8, padding: '10px 12px' }}>
+                                              {(reportPhone || reporterName || courierName) && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                                                   <span style={{ fontSize: 11, fontWeight: 600, color: '#ff4a4a' }}>
                                                     {reporterName || reportPhone}
                                                   </span>
+                                                  {courierName && (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+                                                      {courierLogo && <img src={courierLogo} alt="" height={14} style={{ height: 14, maxWidth: 50, objectFit: 'contain', background: '#fff', borderRadius: 3, padding: 1 }} />}
+                                                      {courierName}
+                                                    </span>
+                                                  )}
                                                 </div>
                                               )}
                                               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4, margin: 0 }}>
                                                 {commentText}
                                               </p>
-                                              {reportDate && (
+                                              {reportDateLabel && (
                                                 <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 6, marginBottom: 0 }}>
-                                                  {reportDate}
+                                                  {reportDateLabel}
                                                 </p>
                                               )}
                                             </div>
