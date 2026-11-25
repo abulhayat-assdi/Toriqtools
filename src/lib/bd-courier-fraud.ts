@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db';
  *
  *  1. Responses are stored in the `steadfast_fraud_cache` table and re-served
  *     until they go stale — page loads / modal re-opens never hit the API.
- *  2. Outgoing calls are metered globally (per hour + per day) through the
+ *  2. Outgoing calls are metered globally (per day) through the
  *     `steadfast_api_state` row, so a burst of admin clicks cannot drain the quota.
  *  3. A `429` (or a "rate limit" message) puts the whole integration into a
  *     cooldown; during that time cached data is served instead of calling again.
@@ -27,8 +27,7 @@ function envInt(name: string, fallback: number): number {
 
 /** How long a stored response stays fresh (no API call at all within this window). */
 const CACHE_TTL_MS = envInt('BDCOURIER_FRAUD_CACHE_HOURS', 12) * HOUR;
-/** Hard caps on outgoing fraud_check calls. */
-const MAX_PER_HOUR = envInt('BDCOURIER_FRAUD_MAX_PER_HOUR', 30);
+/** Hard daily cap on outgoing courier-check calls. */
 const MAX_PER_DAY = envInt('BDCOURIER_FRAUD_MAX_PER_DAY', 150);
 /** Pause the whole integration for this long after BD Courier reports a rate limit. */
 const COOLDOWN_MS = envInt('BDCOURIER_FRAUD_COOLDOWN_MINUTES', 15) * MINUTE;
@@ -221,7 +220,6 @@ async function reserveCallSlot(now: Date): Promise<Reservation> {
       updated_at   = ${stamp}
     WHERE id = 'singleton'
       AND (cooldown_until IS NULL OR cooldown_until <= ${stamp})
-      AND (window_start IS NULL OR window_start <= ${hourCutoff} OR window_count < ${MAX_PER_HOUR})
       AND (day_start IS NULL OR day_start <= ${dayCutoff} OR day_count < ${MAX_PER_DAY})
     RETURNING id, last_call_at, cooldown_until, window_start, window_count, day_start, day_count
   `;
@@ -232,11 +230,7 @@ async function reserveCallSlot(now: Date): Promise<Reservation> {
   if (current?.cooldown_until && current.cooldown_until > stamp) {
     return { granted: false, reason: 'cooldown', retryAt: current.cooldown_until };
   }
-  const hourlyExhausted =
-    !!current?.window_start && current.window_start > hourCutoff && current.window_count >= MAX_PER_HOUR;
-  const retryAt = hourlyExhausted
-    ? new Date(current!.window_start!.getTime() + HOUR)
-    : new Date((current?.day_start?.getTime() ?? stamp.getTime()) + DAY);
+  const retryAt = new Date((current?.day_start?.getTime() ?? stamp.getTime()) + DAY);
   return { granted: false, reason: 'quota', retryAt };
 }
 
@@ -398,7 +392,7 @@ async function lookup(phone: string, force: boolean): Promise<CourierLookup> {
     const message =
       reservation.reason === 'cooldown'
         ? RATE_LIMIT_MESSAGE
-        : `${RATE_LIMIT_MESSAGE} (daily/hourly search budget used up)`;
+        : `${RATE_LIMIT_MESSAGE} (daily search budget used up)`;
     return staleFallback(message, reservation.retryAt);
   }
 
